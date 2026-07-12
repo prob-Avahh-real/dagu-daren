@@ -1,0 +1,22 @@
+{
+  "name": "dagu-daren",
+  "version": "1.0.0",
+  "description": "大鼓达人 · 中国大鼓节奏游戏 — iOS & Android & Watch",
+  "private": true,
+  "scripts": {
+    "web": "npx serve www -p 3000",
+    "build": "node scripts/build-web.js",
+    "cap:sync": "npx cap sync",
+    "cap:ios": "npx cap open ios",
+    "cap:android": "npx cap open android",
+    "build:ios": "npm run build && npx cap sync ios && echo '✅ iOS 就绪，Xcode 打开 ios/App/App.xcworkspace'",
+    "build:android": "npm run build && npx cap sync android && echo '✅ Android 就绪，Android Studio 打开 android/'",
+    "build:all": "npm run build && npx cap sync && echo '✅ iOS + Android 就绪'"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.0.0",
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/ios": "^6.0.0",
+    "@capacitor/android": "^6.0.0"
+  }
+}

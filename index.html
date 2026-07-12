@@ -1,0 +1,2002 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>大鼓达人 · Dagu Daren</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0806;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;
+  font-family:"PingFang SC","Microsoft YaHei",sans-serif}
+canvas{display:block;position:absolute;top:0;left:0;width:100%;height:100%}
+
+/* HUD overlay */
+#hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;
+  padding:12px 16px;pointer-events:none;z-index:10}
+#score-area{text-align:left}
+#score-label{font-size:12px;color:#c9a96e;letter-spacing:2px}
+#score-value{font-size:28px;font-weight:900;color:#f0d080;text-shadow:0 0 12px rgba(240,208,128,.4)}
+#combo-area{text-align:center}
+#combo-value{font-size:32px;font-weight:900;color:#e84040;text-shadow:0 0 16px rgba(232,64,64,.5);
+  transition:transform .1s}
+#combo-label{font-size:11px;color:#c06040}
+#acc-area{text-align:right}
+#acc-value{font-size:20px;font-weight:700;color:#d0c8b0}
+#acc-label{font-size:11px;color:#a09070}
+
+/* Judgment popup */
+#judgment{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);
+  font-size:48px;font-weight:900;pointer-events:none;z-index:20;
+  opacity:0;transition:none;text-shadow:0 0 20px currentColor}
+.judge-perfect{color:#ffd700;animation:judgePop .6s ease-out forwards}
+.judge-good{color:#ff8c00;animation:judgePop .6s ease-out forwards}
+.judge-miss{color:#808080;animation:judgePop .6s ease-out forwards}
+@keyframes judgePop{0%{opacity:1;transform:translate(-50%,-50%) scale(1.3)}
+  100%{opacity:0;transform:translate(-50%,-70%) scale(1)}}
+
+/* Start screen */
+#start-screen{position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;z-index:30;background:rgba(10,8,6,.9)}
+#start-screen h1{font-size:clamp(32px,8vw,64px);font-weight:900;
+  background:linear-gradient(180deg,#d4a030 0%,#8b4513 50%,#d4a030 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  text-shadow:none;margin-bottom:8px;letter-spacing:4px}
+#start-screen .subtitle{color:#a09070;font-size:14px;margin-bottom:32px;letter-spacing:2px}
+#start-screen .key-hint{display:flex;gap:16px;margin-bottom:24px}
+.key-badge{background:#1a1410;border:2px solid #3a2a18;border-radius:12px;padding:12px 18px;text-align:center}
+.key-badge .key{font-size:24px;font-weight:900;color:#d4a030;display:block}
+.key-badge .label{font-size:11px;color:#a09070;margin-top:4px}
+#start-screen button{background:linear-gradient(180deg,#c9a050,#8b4513);border:none;
+  color:#fff8e8;font-size:20px;font-weight:700;padding:14px 48px;border-radius:32px;
+  cursor:pointer;letter-spacing:2px;box-shadow:0 4px 20px rgba(180,100,20,.4);
+  transition:transform .15s}
+#start-screen button:active{transform:scale(.95)}
+#start-screen .touch-hint{color:#807060;font-size:12px;margin-top:16px}
+
+/* Song select */
+.song-btn{width:100%;background:#1a1410;border:2px solid #3a2a18;border-radius:16px;
+  padding:14px 18px;color:#d4a030;cursor:pointer;text-align:left;display:flex;
+  justify-content:space-between;align-items:center;transition:all .15s}
+.song-btn:active{border-color:#c9a050;background:#221a10;transform:scale(.98)}
+.song-btn .s-left{display:flex;flex-direction:column;gap:2px}
+.song-btn .s-title{font-size:17px;font-weight:700}
+.song-btn .s-sub{font-size:12px;color:#a09070}
+.song-btn .s-right{display:flex;align-items:center;gap:10px}
+.song-btn .s-diff{font-size:16px}
+.song-btn .s-arrow{font-size:18px;color:#c9a050}
+
+/* Result screen */
+#result-screen{position:absolute;inset:0;display:none;flex-direction:column;
+  align-items:center;justify-content:center;z-index:30;background:rgba(10,8,6,.95)}
+#result-screen.show{display:flex}
+#result-screen h2{font-size:36px;font-weight:900;color:#d4a030;margin-bottom:8px}
+#result-screen .grade{font-size:72px;margin:8px 0}
+#result-stats{display:flex;gap:32px;margin:16px 0}
+.stat-item{text-align:center}
+.stat-val{font-size:28px;font-weight:900;color:#f0d080}
+.stat-lbl{font-size:11px;color:#a09070}
+#result-screen button{background:linear-gradient(180deg,#c9a050,#8b4513);border:none;
+  color:#fff8e8;font-size:18px;font-weight:700;padding:12px 40px;border-radius:32px;
+  cursor:pointer;margin-top:16px}
+
+/* Loading */
+#loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  z-index:40;background:#0a0806;color:#a09070;font-size:18px}
+
+/* ===== VOICE MODE INDICATOR (glasses/watch) ===== */
+#voice-mode-bar{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+  background:rgba(20,40,20,.9);border:1px solid #22c55e55;border-radius:20px;
+  padding:6px 16px;color:#4ade80;font-size:11px;z-index:50;display:none;
+  align-items:center;gap:6px}
+#voice-mode-bar .vd{width:6px;height:6px;border-radius:50%;background:#22c55e;
+  animation:pulse 1.2s ease infinite}
+#voice-mode-bar.show{display:flex}
+@keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
+
+/* ===== GLASSES MODE ===== */
+@media(max-width:400px) and (max-height:320px), (max-width:320px) and (max-height:400px) {
+  html{font-size:13px}
+  #hud{padding:4px 8px}
+  #score-value{font-size:18px}#combo-value{font-size:20px}#acc-value{font-size:14px}
+  #score-label,#combo-label,#acc-label{font-size:8px}
+  #judgment{font-size:28px;top:35%}
+  #start-screen h1{font-size:20px}
+  #start-screen .subtitle{font-size:10px;margin-bottom:12px}
+  #start-screen .key-hint{display:none}
+  .song-btn{padding:8px 12px;border-radius:10px}
+  .song-btn .s-title{font-size:13px}
+  .song-btn .s-sub{font-size:9px}
+  #start-screen .touch-hint{font-size:9px}
+  #start-screen button{font-size:14px;padding:8px 28px}
+  #result-screen h2{font-size:24px}
+  #result-screen .grade{font-size:40px;margin:4px 0}
+  #result-stats{gap:12px}
+  .stat-val{font-size:18px}.stat-lbl{font-size:8px}
+}
+</style>
+</head>
+<body>
+
+<div id="loading">🥁 中国大鼓调音中...</div>
+
+<div id="start-screen" style="display:none">
+  <h1>大鼓达人</h1>
+  <p class="subtitle">—— 中国大鼓节奏游戏 ——</p>
+
+  <!-- 选曲 -->
+  <div id="song-list" style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:360px;margin-bottom:16px"></div>
+
+  <div class="key-hint">
+    <div class="key-badge"><span class="key">D</span><span class="label">咚</span></div>
+    <div class="key-badge"><span class="key">F</span><span class="label">咚</span></div>
+    <div class="key-badge"><span class="key">J</span><span class="label">咔</span></div>
+    <div class="key-badge"><span class="key">K</span><span class="label">咔</span></div>
+  </div>
+  <p class="touch-hint">📱 手机：左半屏=咚 右半屏=咔</p>
+</div>
+
+<div id="hud" style="display:none">
+  <div id="score-area">
+    <div id="score-label">得 点</div>
+    <div id="score-value">0</div>
+  </div>
+  <div id="combo-area">
+    <div id="combo-value" style="opacity:0">0</div>
+    <div id="combo-label">COMBO</div>
+  </div>
+  <div id="acc-area">
+    <div id="acc-label">精度</div>
+    <div id="acc-value">--%</div>
+  </div>
+</div>
+
+<div id="judgment"></div>
+<div id="voice-mode-bar"><span class="vd"></span> 语音已激活 · 说「咚」或「咔」</div>
+
+<div id="result-screen">
+  <h2>演奏终了</h2>
+  <div class="grade" id="result-grade"></div>
+  <div id="result-stats">
+    <div class="stat-item"><div class="stat-val" id="r-perfect">0</div><div class="stat-lbl">良</div></div>
+    <div class="stat-item"><div class="stat-val" id="r-good">0</div><div class="stat-lbl">可</div></div>
+    <div class="stat-item"><div class="stat-val" id="r-miss">0</div><div class="stat-lbl">不可</div></div>
+    <div class="stat-item"><div class="stat-val" id="r-maxcombo">0</div><div class="stat-lbl">最大连击</div></div>
+    <div class="stat-item"><div class="stat-val" id="r-score">0</div><div class="stat-lbl">得点</div></div>
+  </div>
+  <button onclick="restartGame()">再来一曲</button>
+</div>
+
+<canvas id="game"></canvas>
+
+<script>
+// ==================== AUDIO ENGINE: 中国大鼓音色 ====================
+let audioCtx;
+
+function initAudio() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  document.getElementById("loading").style.display = "none";
+  document.getElementById("start-screen").style.display = "flex";
+}
+
+// 咚 (Don) — 中国大鼓中心击打
+function playDon(time) {
+  if (!audioCtx) return;
+  const t = time || audioCtx.currentTime;
+
+  // Layer 1: 低频正弦 — 大鼓的深沉共鸣
+  const osc1 = audioCtx.createOscillator();
+  const gain1 = audioCtx.createGain();
+  osc1.type = "sine";
+  osc1.frequency.setValueAtTime(140, t);
+  osc1.frequency.exponentialRampToValueAtTime(55, t + 0.08); // 快速下沉
+  osc1.frequency.setValueAtTime(55, t + 1.2);
+  gain1.gain.setValueAtTime(0.9, t);
+  gain1.gain.exponentialRampToValueAtTime(0.001, t + 1.5);
+  osc1.connect(gain1); gain1.connect(audioCtx.destination);
+  osc1.start(t); osc1.stop(t + 1.6);
+
+  // Layer 2: 三角波 — 增加鼓皮的"皮感"
+  const osc2 = audioCtx.createOscillator();
+  const gain2 = audioCtx.createGain();
+  osc2.type = "triangle";
+  osc2.frequency.setValueAtTime(200, t);
+  osc2.frequency.exponentialRampToValueAtTime(90, t + 0.05);
+  gain2.gain.setValueAtTime(0.4, t);
+  gain2.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+  osc2.connect(gain2); gain2.connect(audioCtx.destination);
+  osc2.start(t); osc2.stop(t + 0.7);
+
+  // Layer 3: 白噪声冲击 — 鼓槌击打瞬间
+  const bufferSize = audioCtx.sampleRate * 0.04;
+  const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = noiseBuffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (audioCtx.sampleRate * 0.005));
+  }
+  const noise = audioCtx.createBufferSource();
+  const gainN = audioCtx.createGain();
+  noise.buffer = noiseBuffer;
+  gainN.gain.setValueAtTime(0.5, t);
+  gainN.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+  noise.connect(gainN); gainN.connect(audioCtx.destination);
+  noise.start(t);
+
+  // Layer 4: 低频谐振 — 大鼓的"瓮声"
+  const osc3 = audioCtx.createOscillator();
+  const gain3 = audioCtx.createGain();
+  osc3.type = "sine";
+  osc3.frequency.value = 35;
+  gain3.gain.setValueAtTime(0.25, t + 0.02);
+  gain3.gain.exponentialRampToValueAtTime(0.001, t + 2.0);
+  osc3.connect(gain3); gain3.connect(audioCtx.destination);
+  osc3.start(t + 0.02); osc3.stop(t + 2.1);
+}
+
+// 咔 (Ka) — 鼓边击打
+function playKa(time) {
+  if (!audioCtx) return;
+  const t = time || audioCtx.currentTime;
+
+  // Layer 1: 高频短促 — 边击的清脆感
+  const osc1 = audioCtx.createOscillator();
+  const gain1 = audioCtx.createGain();
+  osc1.type = "square";
+  osc1.frequency.setValueAtTime(600, t);
+  osc1.frequency.exponentialRampToValueAtTime(300, t + 0.03);
+  gain1.gain.setValueAtTime(0.35, t);
+  gain1.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+  osc1.connect(gain1); gain1.connect(audioCtx.destination);
+  osc1.start(t); osc1.stop(t + 0.2);
+
+  // Layer 2: 噪声层 — 鼓边木质感
+  const bufferSize = audioCtx.sampleRate * 0.06;
+  const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const nd = noiseBuffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    nd[i] = (Math.random() * 2 - 1) * Math.exp(-i / (audioCtx.sampleRate * 0.003));
+  }
+  const noise = audioCtx.createBufferSource();
+  const gainN = audioCtx.createGain();
+  noise.buffer = noiseBuffer;
+  gainN.gain.setValueAtTime(0.45, t);
+  gainN.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = "highpass"; filter.frequency.value = 2000;
+  noise.connect(filter); filter.connect(gainN); gainN.connect(audioCtx.destination);
+  noise.start(t);
+
+  // Layer 3: 高频泛音
+  const osc2 = audioCtx.createOscillator();
+  const gain2 = audioCtx.createGain();
+  osc2.type = "sine";
+  osc2.frequency.value = 3200;
+  gain2.gain.setValueAtTime(0.12, t);
+  gain2.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+  osc2.connect(gain2); gain2.connect(audioCtx.destination);
+  osc2.start(t); osc2.stop(t + 0.05);
+}
+
+// ==================== DEMO SONG ====================
+// 简易版"将军令"风格节奏
+// ==================== SONG LIBRARY ====================
+// 辅助：按给定节奏模式生成音符
+// pattern: "D"=don, "K"=ka, "."=休止, 每字符=1/8拍
+function generateNotes(startBeat, pattern, bpm) {
+  const beatLen = (60 / bpm) / 2; // each char = 1/8 beat = half a quarter
+  const notes = [];
+  for (let i = 0; i < pattern.length; i++) {
+    const ch = pattern[i];
+    if (ch === "D") notes.push({ t: startBeat * (60/bpm) + i * beatLen, type: "don" });
+    else if (ch === "K") notes.push({ t: startBeat * (60/bpm) + i * beatLen, type: "ka" });
+  }
+  return notes;
+}
+// repeat pattern n times sequentially
+function repeatPattern(startBeat, pattern, bpm, times) {
+  const all = [];
+  const barsPerRepeat = pattern.length / 8; // 8 chars = 1 bar of 4/4
+  for (let i = 0; i < times; i++) {
+    all.push(...generateNotes(startBeat + i * barsPerRepeat * 4, pattern, bpm));
+  }
+  return all;
+}
+
+const SONGS = [
+  {
+    id: "jiangjun",
+    title: "战鼓·将军令",
+    subtitle: "传统风格",
+    bpm: 120,
+    difficulty: "⭐",
+    notes: [
+      // Intro
+      {t:0,type:"don"},{t:1,type:"don"},{t:2,type:"don"},{t:3,type:"don"},
+      {t:4,type:"ka"},{t:4.5,type:"ka"},{t:5,type:"ka"},{t:5.5,type:"ka"},
+      {t:6,type:"don"},{t:6.5,type:"don"},{t:7,type:"don"},{t:7.5,type:"ka"},
+      {t:8,type:"don"},{t:9,type:"don"},{t:10,type:"ka"},{t:10.5,type:"ka"},
+      {t:11,type:"don"},{t:12,type:"don"},{t:13,type:"ka"},{t:13.5,type:"ka"},
+      {t:14,type:"don"},{t:14.5,type:"ka"},{t:15,type:"don"},{t:15.5,type:"ka"},
+      {t:16,type:"don"},{t:16.5,type:"don"},{t:17,type:"ka"},{t:17.5,type:"don"},
+      {t:18,type:"don"},{t:18.5,type:"ka"},{t:19,type:"ka"},{t:19.5,type:"ka"},
+      {t:20,type:"don"},{t:20.5,type:"ka"},{t:21,type:"don"},{t:21.5,type:"ka"},
+      {t:22,type:"don"},{t:22.5,type:"don"},{t:23,type:"don"},{t:23.5,type:"don"},
+      {t:24,type:"don"},{t:24.33,type:"don"},{t:24.67,type:"don"},
+      {t:25,type:"ka"},{t:25.33,type:"ka"},{t:25.67,type:"ka"},
+      {t:26,type:"don"},{t:26.33,type:"don"},{t:26.67,type:"don"},
+      {t:27,type:"ka"},{t:27.33,type:"ka"},{t:27.67,type:"ka"},
+      {t:28,type:"don"},{t:28.5,type:"ka"},{t:29,type:"don"},{t:29.5,type:"ka"},
+      {t:30,type:"don"},{t:30.5,type:"ka"},{t:31,type:"don"},{t:31.5,type:"don"},
+      {t:32,type:"don"},{t:32.25,type:"don"},{t:32.5,type:"ka"},{t:32.75,type:"ka"},
+      {t:33,type:"don"},{t:33.25,type:"don"},{t:33.5,type:"ka"},{t:33.75,type:"don"},
+      {t:34,type:"ka"},{t:34.25,type:"ka"},{t:34.5,type:"don"},{t:34.75,type:"don"},
+      {t:35,type:"ka"},{t:35.25,type:"ka"},{t:35.5,type:"don"},{t:35.75,type:"ka"},
+      {t:36,type:"don"},{t:36.25,type:"don"},{t:36.5,type:"don"},{t:36.75,type:"don"},
+      {t:37,type:"ka"},{t:37.25,type:"ka"},{t:37.5,type:"ka"},{t:37.75,type:"ka"},
+      {t:38,type:"don"},{t:38.25,type:"ka"},{t:38.5,type:"don"},{t:38.75,type:"ka"},
+      {t:39,type:"don"},{t:39.25,type:"ka"},{t:39.5,type:"don"},{t:39.75,type:"don"},
+      {t:40,type:"ka"},{t:40.5,type:"ka"},{t:41,type:"ka"},{t:41.5,type:"ka"},
+      {t:42,type:"ka"},{t:42.25,type:"ka"},{t:42.5,type:"ka"},{t:42.75,type:"ka"},
+      {t:43,type:"don"},{t:43.5,type:"don"},{t:44,type:"don"},
+      {t:44,type:"don"},{t:44.5,type:"don"},{t:45,type:"ka"},{t:45.5,type:"don"},
+      {t:46,type:"don"},{t:46.5,type:"ka"},{t:47,type:"don"},{t:47.25,type:"don"},
+      {t:47.5,type:"ka"},{t:47.75,type:"ka"},{t:48,type:"don"},{t:48.5,type:"don"},
+      {t:49,type:"don"},{t:49.5,type:"don"},{t:50,type:"don"},
+    ],
+    duration: 51
+  },
+  {
+    id: "caocao",
+    title: "曹操",
+    subtitle: "林俊杰 · 144BPM",
+    bpm: 144,
+    difficulty: "⭐⭐⭐",
+    notes: buildCaoCao(),
+    duration: 110
+  },
+  // ===== 中外动漫经典 =====
+  {
+    id: "huluwa", title: "葫芦娃", subtitle: "国产经典 · 132BPM",
+    bpm: 132, difficulty: "⭐", notes: buildHuluwa(), duration: 55
+  },
+  {
+    id: "slamdunk", title: "好想大声说喜欢你", subtitle: "灌篮高手 · 142BPM",
+    bpm: 142, difficulty: "⭐⭐", notes: buildSlamDunk(), duration: 85
+  },
+  {
+    id: "onepiece", title: "We Are!", subtitle: "海贼王 · 168BPM",
+    bpm: 168, difficulty: "⭐⭐⭐", notes: buildOnePiece(), duration: 90
+  },
+  {
+    id: "dragonball", title: "CHA-LA HEAD-CHA-LA", subtitle: "龙珠 · 160BPM",
+    bpm: 160, difficulty: "⭐⭐", notes: buildDragonBall(), duration: 80
+  },
+  {
+    id: "naruto", title: "Silhouette", subtitle: "火影忍者 · 183BPM",
+    bpm: 183, difficulty: "⭐⭐⭐⭐", notes: buildNaruto(), duration: 85
+  },
+  {
+    id: "eva", title: "残酷天使的行动纲领", subtitle: "EVA · 128BPM",
+    bpm: 128, difficulty: "⭐⭐", notes: buildEVA(), duration: 75
+  },
+  {
+    id: "demonslayer", title: "红莲华", subtitle: "鬼灭之刃 · 135BPM",
+    bpm: 135, difficulty: "⭐⭐⭐", notes: buildDemonSlayer(), duration: 80
+  },
+  {
+    id: "aot", title: "红莲的弓矢", subtitle: "进击的巨人 · 180BPM",
+    bpm: 180, difficulty: "⭐⭐⭐⭐", notes: buildAOT(), duration: 75
+  },
+  // ===== 第11-20首 =====
+  {id:"heimao",title:"黑猫警长",subtitle:"国产经典 · 138BPM",bpm:138,difficulty:"⭐",notes:buildHeiMao(),duration:60},
+  {id:"inuyasha",title:"Change the World",subtitle:"犬夜叉 · 130BPM",bpm:130,difficulty:"⭐⭐",notes:buildInuyasha(),duration:75},
+  {id:"conan",title:"名探侦コナン",subtitle:"名侦探柯南 · 135BPM",bpm:135,difficulty:"⭐⭐",notes:buildConan(),duration:70},
+  {id:"bleach",title:"Asterisk",subtitle:"死神 · 148BPM",bpm:148,difficulty:"⭐⭐⭐",notes:buildBleach(),duration:80},
+  {id:"gintama",title:"Pray",subtitle:"银魂 · 144BPM",bpm:144,difficulty:"⭐⭐",notes:buildGintama(),duration:75},
+  {id:"hxh",title:"Departure!",subtitle:"全职猎人 · 160BPM",bpm:160,difficulty:"⭐⭐⭐",notes:buildHxH(),duration:80},
+  {id:"fma",title:"Again",subtitle:"钢之炼金术师 · 140BPM",bpm:140,difficulty:"⭐⭐⭐",notes:buildFMA(),duration:85},
+  {id:"digimon",title:"Butter-Fly",subtitle:"数码宝贝 · 165BPM",bpm:165,difficulty:"⭐⭐",notes:buildDigimon(),duration:75},
+  {id:"doraemon",title:"ドラえもん",subtitle:"哆啦A梦 · 125BPM",bpm:125,difficulty:"⭐",notes:buildDoraemon(),duration:55},
+  {id:"shinchan",title:"オラはにんきもの",subtitle:"蜡笔小新 · 140BPM",bpm:140,difficulty:"⭐",notes:buildShinChan(),duration:50},
+  // ===== 第21-30首 =====
+  {id:"sailormoon",title:"月光传说",subtitle:"美少女战士 · 135BPM",bpm:135,difficulty:"⭐⭐",notes:buildSailorMoon(),duration:70},
+  {id:"saintseiya",title:"天马座的幻想",subtitle:"圣斗士星矢 · 165BPM",bpm:165,difficulty:"⭐⭐⭐",notes:buildSaintSeiya(),duration:80},
+  {id:"pokemon",title:"めざせポケモンマスター",subtitle:"精灵宝可梦 · 145BPM",bpm:145,difficulty:"⭐",notes:buildPokemon(),duration:60},
+  {id:"mario",title:"Super Mario",subtitle:"超级马里奥 · 150BPM",bpm:150,difficulty:"⭐⭐",notes:buildMario(),duration:55},
+  {id:"streetfighter",title:"Guile's Theme",subtitle:"街霸 · 130BPM",bpm:130,difficulty:"⭐⭐",notes:buildStreetFighter(),duration:70},
+  {id:"spiritedaway",title:"永远同在",subtitle:"千与千寻 · 120BPM",bpm:120,difficulty:"⭐",notes:buildSpiritedAway(),duration:70},
+  {id:"yourname",title:"前前前世",subtitle:"你的名字 · 190BPM",bpm:190,difficulty:"⭐⭐⭐⭐",notes:buildYourName(),duration:75},
+  {id:"totoro",title:"散步",subtitle:"龙猫 · 128BPM",bpm:128,difficulty:"⭐",notes:buildTotoro(),duration:60},
+  {id:"kungfu",title:"Kung Fu Fighting",subtitle:"功夫 · 110BPM",bpm:110,difficulty:"⭐⭐",notes:buildKungFu(),duration:65},
+  {id:"nezha",title:"哪吒",subtitle:"魔童降世 · 140BPM",bpm:140,difficulty:"⭐⭐⭐",notes:buildNeZha(),duration:80}
+];
+
+// 曹操谱面 — 林俊杰经典
+function buildCaoCao() {
+  const B = 144;
+  // 节奏模式定义 (每字符 = 1/8 拍, 8字符 = 1小节)
+  const ROCK1 = "D...K...D...K..."; // 基本摇滚节奏
+  const ROCK2 = "D...K.D.K...D.K."; // 变化摇滚
+  const CHORUS = "D.D.K.D.K.D.K.K."; // 副歌密集
+  const CLIMAX = "DKDKDKDKDKDKDKDK"; // 最高潮全密鼓
+  const QUAD = "DDDD....DDDD....";   // 四连鼓
+  const BRIDGE = "DD..DD..DD..DD.."; // 桥段双鼓
+  
+  const notes = [];
+
+  // Intro (0-4 bars): 大鼓序奏
+  notes.push(...generateNotes(0, "D...D...D...D...", B));       // bar 0
+  notes.push(...generateNotes(4, "D...D...D.D.D...", B));       // bar 1
+  notes.push(...generateNotes(8, "D...D...D...K.K.", B));       // bar 2
+  notes.push(...generateNotes(12,"D.D.D.D.D...D...", B));       // bar 3 — building
+
+  // Verse 1 (4-20 bars): "不是英雄 不读三国..."
+  notes.push(...repeatPattern(16, ROCK1, B, 4));                 // bar 4-7
+  notes.push(...repeatPattern(32, ROCK2, B, 4));                 // bar 8-11
+  notes.push(...repeatPattern(48, ROCK1, B, 4));                 // bar 12-15
+  notes.push(...repeatPattern(64, ROCK2, B, 4));                 // bar 16-19
+
+  // Pre-chorus (20-28 bars): "东汉末年分三国..."
+  notes.push(...generateNotes(80, "D...K...D...K...", B));      // bar 20
+  notes.push(...generateNotes(84, "D...K...D.D.K...", B));      // bar 21
+  notes.push(...generateNotes(88, "D...K...D.D.D...", B));      // bar 22
+  notes.push(...generateNotes(92, "D...K.D.D...D...", B));      // bar 23
+  notes.push(...generateNotes(96, "D.D.K...D...K.K.", B));      // bar 24
+  notes.push(...generateNotes(100,"D.D.K.D.D...D...", B));      // bar 25
+  notes.push(...generateNotes(104,"D...K...D...K.K.", B));      // bar 26
+  notes.push(...generateNotes(108,"D.D.K.D.D.D.D...", B));      // bar 27 — build
+
+  // Chorus 1 (28-44 bars): "曹操不啰嗦 一心要拿荆州..."
+  notes.push(...repeatPattern(112, CHORUS, B, 4));              // bar 28-31
+  notes.push(...repeatPattern(128, CHORUS, B, 2));              // bar 32-33
+  notes.push(...generateNotes(136,"DKDKDKDK........", B));      // bar 34 — 爆发
+  notes.push(...repeatPattern(140, CHORUS, B, 2));              // bar 35-36
+  notes.push(...repeatPattern(148, CHORUS, B, 2));              // bar 37-38
+  notes.push(...generateNotes(156,"D.D.D.D.D...D...", B));      // bar 39
+  notes.push(...generateNotes(160,"D.D.K.D.K.D.K.D.", B));      // bar 40
+  notes.push(...repeatPattern(164, CHORUS, B, 2));              // bar 41-42
+  notes.push(...generateNotes(172,"D...K...D...D.D.", B));      // bar 43
+
+  // Verse 2 (44-60 bars)
+  notes.push(...repeatPattern(176, ROCK1, B, 4));               // bar 44-47
+  notes.push(...repeatPattern(192, ROCK2, B, 2));               // bar 48-49
+  notes.push(...generateNotes(200,"D...K.D.K...D.K.", B));      // bar 50
+  notes.push(...repeatPattern(204, ROCK2, B, 3));               // bar 51-53
+  notes.push(...repeatPattern(216, ROCK1, B, 4));               // bar 54-57
+  notes.push(...generateNotes(232,"D.D.K.D.D...D...", B));      // bar 58
+  notes.push(...generateNotes(236,"D...K...D.D.D...", B));      // bar 59
+
+  // Pre-chorus 2 (60-68 bars)
+  notes.push(...generateNotes(240,"D...K...D...K...", B));      // bar 60
+  notes.push(...generateNotes(244,"D.D.K...D.D.K...", B));      // bar 61
+  notes.push(...generateNotes(248,"D.D.K.D.D.D.K...", B));      // bar 62
+  notes.push(...generateNotes(252,"D.D.K.D.D.D.D...", B));      // bar 63
+  notes.push(...generateNotes(256,"D.D.K.D.D...K.K.", B));      // bar 64
+  notes.push(...generateNotes(260,"D.D.K.D.D.D.D...", B));      // bar 65
+  notes.push(...generateNotes(264,"D...K.D.D...K.K.", B));      // bar 66
+  notes.push(...generateNotes(268,"D.D.K.D.D.D.D.D.", B));      // bar 67 — bigger build
+
+  // Chorus 2 (68-84 bars)
+  notes.push(...repeatPattern(272, CHORUS, B, 4));              // bar 68-71
+  notes.push(...repeatPattern(288, CHORUS, B, 2));              // bar 72-73
+  notes.push(...generateNotes(296,"DKDKDKDK........", B));      // bar 74
+  notes.push(...repeatPattern(300, CHORUS, B, 4));              // bar 75-78
+  notes.push(...generateNotes(316,"D.D.D.D.D...D...", B));      // bar 79
+  notes.push(...generateNotes(320,"D.D.K.D.K.D.K.D.", B));      // bar 80
+  notes.push(...repeatPattern(324, CHORUS, B, 2));              // bar 81-82
+  notes.push(...generateNotes(332,"D...K...D.D.D...", B));      // bar 83
+
+  // Bridge (84-96 bars): 鼓间奏
+  notes.push(...repeatPattern(336, BRIDGE, B, 4));              // bar 84-87
+  notes.push(...generateNotes(352,"DDDD....DDDD....", B));      // bar 88
+  notes.push(...generateNotes(356,"DDDD....DDDD....", B));      // bar 89
+  notes.push(...generateNotes(360,"D.D.D.D.D.D.D.D.", B));      // bar 90
+  notes.push(...generateNotes(364,"D.D.D.D.D...K.K.", B));      // bar 91
+  notes.push(...generateNotes(368,"DDDD....DDDD....", B));      // bar 92
+  notes.push(...generateNotes(372,"DDDD....DDDD....", B));      // bar 93
+  notes.push(...generateNotes(376,"D.D.D.D.D.D.K.K.", B));      // bar 94
+  notes.push(...generateNotes(380,"D.D.K.D.D.D.D.D.", B));      // bar 95 — build to finale
+
+  // Final Chorus (96-108 bars)
+  notes.push(...repeatPattern(384, CHORUS, B, 4));              // bar 96-99
+  notes.push(...generateNotes(400,"DKDKDKDK........", B));      // bar 100
+  notes.push(...repeatPattern(404, CHORUS, B, 2));              // bar 101-102
+  notes.push(...generateNotes(412,"D.D.D.D.D.D.D.D.", B));      // bar 103
+  notes.push(...generateNotes(416,"DKDKDKDK........", B));      // bar 104
+  notes.push(...repeatPattern(420, CHORUS, B, 2));              // bar 105-106
+  // Grand Finale
+  notes.push(...generateNotes(428,"DDDD....DDDD....", B));      // bar 107
+  notes.push(...generateNotes(432,"DDDD....DDDD....", B));      // bar 108
+  notes.push(...generateNotes(436,"D.D.D.D.D.D.D...", B));      // bar 109
+  notes.push(...generateNotes(440,"D...D...D...D.D.", B));      // bar 110 — final
+
+  return notes;
+}
+
+// ===== 葫芦娃 — 国产经典 =====
+function buildHuluwa() {
+  const B=132;
+  const notes=[];
+  notes.push(...generateNotes(0,"D...D...D...D...",B));
+  notes.push(...generateNotes(4,"D...K...D...K...",B));
+  notes.push(...generateNotes(8,"D.D.D.D.D...D...",B));
+  notes.push(...generateNotes(12,"D...K.D.K...D.K.",B));
+  notes.push(...repeatPattern(16,"D.D.K...D.D.K...",B,4));
+  notes.push(...repeatPattern(32,"D.D.K.D.D.D.K...",B,4));
+  notes.push(...generateNotes(48,"D...D...D...D...",B));
+  notes.push(...generateNotes(52,"D...K.D.D...K.K.",B));
+  notes.push(...generateNotes(56,"D.D.D.D.D...D...",B));
+  notes.push(...generateNotes(60,"D...D...D...D.D.",B));
+  return notes;
+}
+
+// ===== 灌篮高手 "好想大声说喜欢你" =====
+function buildSlamDunk() {
+  const B=142;
+  const notes=[];
+  const VERSE="D...K...D...K.D.";
+  notes.push(...generateNotes(0,"D.D.D.D.D...D...",B));
+  notes.push(...generateNotes(4,"D...K...D...K.K.",B));
+  notes.push(...generateNotes(8,"D.D.D.D.D...D...",B));
+  notes.push(...generateNotes(12,"D...K.D.K...D.K.",B));
+  notes.push(...repeatPattern(16,VERSE,B,6));
+  notes.push(...generateNotes(40,"D...K.D.D.D.K.D.",B));
+  notes.push(...generateNotes(44,"D.D.K.D.D.D.D...",B));
+  notes.push(...repeatPattern(48,VERSE,B,4));
+  notes.push(...generateNotes(64,"D...K...D...K...",B));
+  notes.push(...generateNotes(68,"D.D.K.D.D.D.K...",B));
+  notes.push(...repeatPattern(72,"D.D.K.D.D.K.D.D.",B,4));
+  notes.push(...generateNotes(88,"D...K.D.D.D.K.D.",B));
+  notes.push(...generateNotes(92,"D.D.D.D.D...D...",B));
+  notes.push(...generateNotes(96,"D...D...D...D.D.",B));
+  return notes;
+}
+
+// ===== 海贼王 "We Are!" =====
+function buildOnePiece() {
+  const B=168;
+  const notes=[];
+  const MAIN="D...K...D...K.D.";
+  notes.push(...generateNotes(0,"D...D...D...D...",B));
+  notes.push(...generateNotes(4,"D...D...D.D.D...",B));
+  notes.push(...generateNotes(8,"D...K...D...K.K.",B));
+  notes.push(...generateNotes(12,"D.D.D.D.D...D...",B));
+  notes.push(...repeatPattern(16,MAIN,B,6));
+  notes.push(...generateNotes(40,"D.D.K.D.D.D.K...",B));
+  notes.push(...generateNotes(44,"D.D.K.D.K.D.K.D.",B));
+  notes.push(...repeatPattern(48,"D.D.K.D.D.D.K.D.",B,4));
+  notes.push(...generateNotes(64,"D...K.D.D...K.K.",B));
+  notes.push(...repeatPattern(68,"DKDKDKDK........",B,2));
+  notes.push(...repeatPattern(76,"D.D.K.D.D.D.K.D.",B,4));
+  notes.push(...generateNotes(92,"D.D.K.D.D.D.K.D.",B));
+  notes.push(...generateNotes(96,"D...D...D...D.D.",B));
+  return notes;
+}
+
+// ===== 龙珠 "CHA-LA HEAD-CHA-LA" =====
+function buildDragonBall() {
+  const B=160;
+  const notes=[];
+  notes.push(...generateNotes(0,"D...D...D...D...",B));
+  notes.push(...generateNotes(4,"D.D.K...D.D.K...",B));
+  notes.push(...generateNotes(8,"D...D...K...K...",B));
+  notes.push(...generateNotes(12,"D.D.K.D.D.D.D...",B));
+  notes.push(...repeatPattern(16,"D...K.D.D...K.D.",B,4));
+  notes.push(...generateNotes(32,"D...D...D...K.K.",B));
+  notes.push(...generateNotes(36,"D.D.K.D.D.D.K.D.",B));
+  notes.push(...repeatPattern(40,"D.D.K...D.D.K...",B,4));
+  notes.push(...generateNotes(56,"D...D...D...D...",B));
+  notes.push(...generateNotes(60,"D.D.K.D.D.D.K...",B));
+  notes.push(...repeatPattern(64,"D.D.K.D.K.D.K.D.",B,4));
+  notes.push(...generateNotes(80,"D...K.D.D...K.K.",B));
+  notes.push(...generateNotes(84,"D.D.D.D.D...D...",B));
+  notes.push(...generateNotes(88,"D...D...D...D.D.",B));
+  return notes;
+}
+
+// ===== 火影忍者 "Silhouette" =====
+function buildNaruto() {
+  const B=183;
+  const notes=[];
+  notes.push(...generateNotes(0,"D...D...D...D...",B));
+  notes.push(...generateNotes(4,"D...D...D.D.D...",B));
+  notes.push(...generateNotes(8,"D...K...D...K...",B));
+  notes.push(...generateNotes(12,"D.D.D.D.D...D...",B));
+  notes.push(...repeatPattern(16,"D.D.K.D.D.K.D.D.",B,4));
+  notes.push(...generateNotes(32,"D.D.K.D.D.D.K...",B));
+  notes.push(...generateNotes(36,"DKDKDKDK........",B));
+  notes.push(...repeatPattern(40,"D.D.K.D.D.K.D.D.",B,4));
+  notes.push(...generateNotes(56,"D.D.K.D.D.D.K...",B));
+  notes.push(...repeatPattern(60,"DKDKDKDK........",B,2));
+  notes.push(...repeatPattern(68,"D.D.K.D.D.K.D.D.",B,4));
+  notes.push(...generateNotes(84,"D.D.K.D.D.D.K.D.",B));
+  notes.push(...generateNotes(88,"D...D...D...D.D.",B));
+  return notes;
+}
+
+// ===== 新世纪福音战士 "残酷天使的行动纲领" =====
+function buildEVA() {
+  const B=128;
+  const notes=[];
+  notes.push(...generateNotes(0,"D...D...D...D...",B));
+  notes.push(...generateNotes(4,"D...K...D...K.K.",B));
+  notes.push(...generateNotes(8,"D...D...K...K...",B));
+  notes.push(...generateNotes(12,"D.D.K.D.D...D...",B));
+  notes.push(...repeatPattern(16,"D...K...D...K.D.",B,4));
+  notes.push(...generateNotes(32,"D...D...D...K.K.",B));
+  notes.push(...generateNotes(36,"D.D.K.D.D...K.D.",B));
+  notes.push(...repeatPattern(40,"D...K.D.D...K.D.",B,4));
+  notes.push(...generateNotes(56,"D...D...D...K.K.",B));
+  notes.push(...generateNotes(60,"D.D.K.D.D.D.K...",B));
+  notes.push(...repeatPattern(64,"D.D.K.D.K.D.K.D.",B,4));
+  notes.push(...generateNotes(80,"D...D...D...D.D.",B));
+  return notes;
+}
+
+// ===== 鬼灭之刃 "红莲华" =====
+function buildDemonSlayer() {
+  const B=135;
+  const notes=[];
+  notes.push(...generateNotes(0,"D...D...D.D.D...",B));
+  notes.push(...generateNotes(4,"D...K...D...K.K.",B));
+  notes.push(...generateNotes(8,"D.D.D.D.D...D...",B));
+  notes.push(...generateNotes(12,"D...K.D.K...D.K.",B));
+  notes.push(...repeatPattern(16,"D.D.K.D.D.D.K...",B,4));
+  notes.push(...generateNotes(32,"D.D.K.D.D.D.K...",B));
+  notes.push(...generateNotes(36,"DKDKDKDK........",B));
+  notes.push(...repeatPattern(40,"D.D.K.D.D.D.K.D.",B,4));
+  notes.push(...generateNotes(56,"D.D.K.D.D.D.K...",B));
+  notes.push(...generateNotes(60,"D...K.D.D...K.K.",B));
+  notes.push(...repeatPattern(64,"D.D.K.D.D.K.D.D.",B,4));
+  notes.push(...generateNotes(80,"D.D.K.D.D.D.K.D.",B));
+  notes.push(...generateNotes(84,"D...D...D...D.D.",B));
+  return notes;
+}
+
+// ===== 进击的巨人 "红莲的弓矢" =====
+function buildAOT() {
+  const B=180;
+  const notes=[];
+  notes.push(...generateNotes(0,"D...D...D...D...",B));
+  notes.push(...generateNotes(4,"D...D...D.D.D...",B));
+  notes.push(...generateNotes(8,"D...K...D...K...",B));
+  notes.push(...generateNotes(12,"D.D.D.D.D...D...",B));
+  notes.push(...repeatPattern(16,"D.D.K.D.D.K.D.D.",B,4));
+  notes.push(...generateNotes(32,"D.D.K.D.D.D.K...",B));
+  notes.push(...generateNotes(36,"DKDKDKDK........",B));
+  notes.push(...repeatPattern(40,"D.D.K.D.D.K.D.D.",B,4));
+  notes.push(...generateNotes(56,"D.D.K.D.D.D.K...",B));
+  notes.push(...generateNotes(60,"D.D.K.D.K.D.K.D.",B));
+  notes.push(...repeatPattern(64,"D.D.K.D.D.K.D.D.",B,4));
+  notes.push(...generateNotes(80,"D.D.K.D.D.D.K.D.",B));
+  notes.push(...generateNotes(84,"D...D...D...D.D.",B));
+  return notes;
+}
+
+// ===== 黑猫警长 — 国产经典 =====
+function buildHeiMao() {
+  const B=138;
+  const notes=[];
+  const VERSE="D...K...D...K...";
+  const CHORUS="D.D.K.D.K.D.D.K.";
+  // Intro (0-3): heroic opening
+  notes.push(...generateNotes(0,"D...D...D...D...",B));
+  notes.push(...generateNotes(4,"D...K...D...K.D.",B));
+  notes.push(...generateNotes(8,"D.D.D.D.D...D...",B));
+  notes.push(...generateNotes(12,"D...K.D.K...D.K.",B));
+  // Verse (4-13): steady march
+  notes.push(...repeatPattern(16,VERSE,B,3));
+  notes.push(...generateNotes(28,"D...K.D.K...D.K.",B));
+  notes.push(...repeatPattern(32,VERSE,B,2));
+  notes.push(...generateNotes(40,"D...K...D.D.D...",B));
+  notes.push(...generateNotes(44,"D.D.K.D.D...D...",B));
+  notes.push(...generateNotes(48,"D...K.D.K.D.D.K.",B));
+  notes.push(...generateNotes(52,"D.D.D.D.D...D...",B));
+  // Chorus (14-23): heroic climax
+  notes.push(...repeatPattern(56,CHORUS,B,3));
+  notes.push(...generateNotes(68,"DKDKDKDK........",B));
+  notes.push(...repeatPattern(72,CHORUS,B,2));
+  notes.push(...generateNotes(80,"D.D.K.D.D.D.K...",B));
+  notes.push(...generateNotes(84,"D.D.K.D.K.D.K.D.",B));
+  notes.push(...generateNotes(88,"D...D...D...D.D.",B));
+  // Verse 2 (24-29): recapitulation
+  notes.push(...repeatPattern(92,VERSE,B,2));
+  notes.push(...generateNotes(100,"D...K.D.D...K.K.",B));
+  notes.push(...generateNotes(104,"D.D.K.D.D...D...",B));
+  notes.push(...generateNotes(108,"D...K...D.D.D...",B));
+  notes.push(...generateNotes(112,"D...K.D.K.D.D.K.",B));
+  // Finale (30-33): grand ending
+  notes.push(...generateNotes(116,"DDDD....DDDD....",B));
+  notes.push(...generateNotes(120,"DDDD....DDDD....",B));
+  notes.push(...generateNotes(124,"D.D.D.D.D.D.D...",B));
+  notes.push(...generateNotes(128,"D...D...D...D.D.",B));
+  return notes;
+}
+
+// ===== 犬夜叉 "Change the World" =====
+function buildInuyasha() {
+  const B=130;
+  const notes=[];
+  const VERSE="D...K...D...D.K.";
+  const CHORUS="D.D.K.D.D.D.K.D.";
+  // Intro (0-3): opening fill
+  notes.push(...generateNotes(0,"D...D...D...D...",B));
+  notes.push(...generateNotes(4,"D...K...D...K.K.",B));
+  notes.push(...generateNotes(8,"D.D.D.D.D...D...",B));
+  notes.push(...generateNotes(12,"D...K.D.K...D.K.",B));
+  // Verse (4-15): steady rock groove
+  notes.push(...repeatPattern(16,VERSE,B,4));
+  notes.push(...generateNotes(32,"D...K.D.K...D.K.",B));
+  notes.push(...repeatPattern(36,VERSE,B,3));
+  notes.push(...generateNotes(48,"D.D.K.D.D...D...",B));
+  notes.push(...generateNotes(52,"D...K...D.D.K...",B));
+  notes.push(...generateNotes(56,"D.D.K.D.D.D.D...",B));
+  notes.push(...generateNotes(60,"D...K.D.K.D.D.K.",B));
+  // Chorus (16-27): catchy rock chorus
+  notes.push(...repeatPattern(64,CHORUS,B,3));
+  notes.push(...generateNotes(76,"D.D.K.D.K.D.K.D.",B));
+  notes.push(...repeatPattern(80,CHORUS,B,2));
+  notes.push(...generateNotes(88,"DKDKDKDK........",B));
+  notes.push(...generateNotes(92,"D.D.K.D.D.D.K.D.",B));
+  notes.push(...generateNotes(96,"D.D.K.D.D.D.K.D.",B));
+  notes.push(...generateNotes(100,"D...D...D...D.D.",B));
+  // Verse 2 (28-35): second verse
+  notes.push(...repeatPattern(104,VERSE,B,2));
+  notes.push(...generateNotes(112,"D...K.D.D...K.K.",B));
+  notes.push(...generateNotes(116,"D.D.K.D.D.D.K...",B));
+  notes.push(...generateNotes(120,"D...K...D.D.D...",B));
+  notes.push(...generateNotes(124,"D.D.K.D.D...D...",B));
+  notes.push(...generateNotes(128,"D...K.D.K.D.D.K.",B));
+  notes.push(...generateNotes(132,"D.D.D.D.D...D...",B));
+  // Finale (36-39): fade out
+  notes.push(...generateNotes(136,"D.D.K.D.D.D.K.D.",B));
+  notes.push(...generateNotes(140,"D...K.D.D...K.K.",B));
+  notes.push(...generateNotes(144,"D.D.D.D.D...D...",B));
+  notes.push(...generateNotes(148,"D...D...D...D.D.",B));
+  return notes;
+}
+
+// ===== 名侦探柯南 theme =====
+function buildConan() {
+  const B=135;
+  const notes=[];
+  const VERSE="D...K...K...D.K.";
+  const CHORUS="K.D.K.D.D.K.D.D.";
+  // Intro (0-3): mysterious opening — more K
+  notes.push(...generateNotes(0,"D...K...D...K...",B));
+  notes.push(...generateNotes(4,"D...K.K.K...D.K.",B));
+  notes.push(...generateNotes(8,"D.D.K.D.D...K...",B));
+  notes.push(...generateNotes(12,"D...K.D.K.K.D.K.",B));
+  // Verse (4-15): jazz-rock swing
+  notes.push(...repeatPattern(16,VERSE,B,4));
+  notes.push(...generateNotes(32,"D...K.K.K...D.K.",B));
+  notes.push(...repeatPattern(36,VERSE,B,3));
+  notes.push(...generateNotes(48,"D.D.K.D.K.K.D.K.",B));
+  notes.push(...generateNotes(52,"D...K...D.D.K.K.",B));
+  notes.push(...generateNotes(56,"D.D.K.D.D.D.K...",B));
+  notes.push(...generateNotes(60,"D...K.D.K.D.D.K.",B));
+  // Chorus (16-27): mysterious climax
+  notes.push(...repeatPattern(64,CHORUS,B,3));
+  notes.push(...generateNotes(76,"DKDKDKDK........",B));
+  notes.push(...repeatPattern(80,CHORUS,B,2));
+  notes.push(...generateNotes(88,"D.D.K.D.K.D.K.D.",B));
+  notes.push(...generateNotes(92,"K.D.K.D.D.D.K.D.",B));
+  notes.push(...generateNotes(96,"K.D.K.D.D.K.D.D.",B));
+  notes.push(...generateNotes(100,"D...K.D.K...D.K.",B));
+  notes.push(...generateNotes(104,"D...D...D...D.D.",B));
+  // Verse 2 (28-35): reprise
+  notes.push(...repeatPattern(108,VERSE,B,2));
+  notes.push(...generateNotes(116,"D...K.K.K.K.D.K.",B));
+  notes.push(...generateNotes(120,"D.D.K.D.D.D.K...",B));
+  notes.push(...generateNotes(124,"D...K...D.D.K.K.",B));
+  notes.push(...generateNotes(128,"D.D.K.D.D.D.D...",B));
+  notes.push(...generateNotes(132,"D...K.D.K.D.K.D.",B));
+  notes.push(...generateNotes(136,"D.D.D.D.D...D...",B));
+  // Finale (36-39): dramatic close
+  notes.push(...generateNotes(140,"D.D.K.D.D.D.K...",B));
+  notes.push(...generateNotes(144,"D...K.K.D...D.K.",B));
+  notes.push(...generateNotes(148,"D.D.D.D.D...D...",B));
+  notes.push(...generateNotes(152,"D...D...D...D.D.",B));
+  return notes;
+}
+
+// ===== 死神 "Asterisk" =====
+function buildBleach() {
+  const B=148;
+  const notes=[];
+  const VERSE="D...K...D...K.D.";
+  const CHORUS="D.D.K.D.D.K.D.D.";
+  // Intro (0-3): energetic rock opening
+  notes.push(...generateNotes(0,"D...D...D...D...",B));
+  notes.push(...generateNotes(4,"D...K...D...K.K.",B));
+  notes.push(...generateNotes(8,"D.D.D.D.D...D...",B));
+  notes.push(...generateNotes(12,"D...K.D.K.D.D.K.",B));
+  // Verse (4-15): driving rock
+  notes.push(...repeatPattern(16,VERSE,B,4));
+  notes.push(...generateNotes(32,"D...K.D.K.D.D.K.",B));
+  notes.push(...repeatPattern(36,VERSE,B,3));
+  notes.push(...generateNotes(48,"D.D.K.D.D...D...",B));
+  notes.push(...generateNotes(52,"D...K...D.D.K...",B));
+  notes.push(...generateNotes(56,"D.D.K.D.D.D.D...",B));
+  notes.push(...generateNotes(60,"D...K.D.K.D.D.K.",B));
+  // Chorus (16-27): explosive chorus
+  notes.push(...repeatPattern(64,CHORUS,B,3));
+  notes.push(...generateNotes(76,"DKDKDKDK........",B));
+  notes.push(...repeatPattern(80,CHORUS,B,2));
+  notes.push(...generateNotes(88,"D.D.K.D.D.K.D.D.",B));
+  notes.push(...generateNotes(92,"D.D.K.D.K.D.K.D.",B));
+  notes.push(...generateNotes(96,"D.D.K.D.D.K.D.D.",B));
+  notes.push(...generateNotes(100,"D...K.D.K...D.K.",B));
+  notes.push(...generateNotes(104,"D...D...D...D.D.",B));
+  // Verse 2 (28-35): second verse
+  notes.push(...repeatPattern(108,VERSE,B,2));
+  notes.push(...generateNotes(116,"D...K.D.D...K.K.",B));
+  notes.push(...generateNotes(120,"D.D.K.D.D.D.K...",B));
+  notes.push(...generateNotes(124,"D...K...D.D.D...",B));
+  notes.push(...generateNotes(128,"D.D.K.D.D.D.D...",B));
+  notes.push(...generateNotes(132,"D...K.D.K.D.D.K.",B));
+  notes.push(...generateNotes(136,"D.D.D.D.D...D...",B));
+  // Chorus 2 (36-47): repeat with higher energy
+  notes.push(...repeatPattern(140,CHORUS,B,3));
+  notes.push(...generateNotes(152,"DKDKDKDK........",B));
+  notes.push(...repeatPattern(156,CHORUS,B,2));
+  notes.push(...generateNotes(164,"D.D.K.D.D.K.D.D.",B));
+  notes.push(...generateNotes(168,"D.D.K.D.K.D.K.D.",B));
+  notes.push(...generateNotes(172,"D.D.K.D.D.D.K...",B));
+  notes.push(...generateNotes(176,"D...K.K.D...D.K.",B));
+  notes.push(...generateNotes(180,"D.D.K.D.D.K.D.D.",B));
+  notes.push(...generateNotes(184,"D...D...D...D.D.",B));
+  // Finale (48-51): big finish
+  notes.push(...generateNotes(188,"DDDD....DDDD....",B));
+  notes.push(...generateNotes(192,"DDDD....DDDD....",B));
+  notes.push(...generateNotes(196,"D.D.D.D.D.D.D...",B));
+  notes.push(...generateNotes(200,"D...D...D...D.D.",B));
+  return notes;
+}
+
+// ===== 银魂 "Pray" =====
+function buildGintama() {
+  const B=144;
+  const notes=[];
+  const VERSE="D...K...D...D.K.";
+  const CHORUS="D.D.K.D.D.D.K.D.";
+  // Intro (0-3): upbeat opening
+  notes.push(...generateNotes(0,"D...D...D...D...",B));
+  notes.push(...generateNotes(4,"D...K...D...K.K.",B));
+  notes.push(...generateNotes(8,"D.D.D.D.D...D...",B));
+  notes.push(...generateNotes(12,"D...K.D.K...D.K.",B));
+  // Verse (4-15): pop-rock groove
+  notes.push(...repeatPattern(16,VERSE,B,4));
+  notes.push(...generateNotes(32,"D...K.D.K...D.K.",B));
+  notes.push(...repeatPattern(36,VERSE,B,3));
+  notes.push(...generateNotes(48,"D.D.K.D.D...D...",B));
+  notes.push(...generateNotes(52,"D...K...D.D.K...",B));
+  notes.push(...generateNotes(56,"D.D.K.D.D.D.D...",B));
+  notes.push(...generateNotes(60,"D...K.D.K.D.D.K.",B));
+  // Chorus (16-27): catchy pop chorus
+  notes.push(...repeatPattern(64,CHORUS,B,3));
+  notes.push(...generateNotes(76,"D.D.K.D.K.D.K.D.",B));
+  notes.push(...repeatPattern(80,CHORUS,B,2));
+  notes.push(...generateNotes(88,"DKDKDKDK........",B));
+  notes.push(...generateNotes(92,"D.D.K.D.D.D.K.D.",B));
+  notes.push(...generateNotes(96,"D.D.K.D.D.D.K.D.",B));
+  notes.push(...generateNotes(100,"D...K.D.K...D.K.",B));
+  notes.push(...generateNotes(104,"D...D...D...D.D.",B));
+  // Verse 2 (28-35): second verse
+  notes.push(...repeatPattern(108,VERSE,B,2));
+  notes.push(...generateNotes(116,"D...K.D.D...K.K.",B));
+  notes.push(...generateNotes(120,"D.D.K.D.D.D.K...",B));
+  notes.push(...generateNotes(124,"D...K...D.D.D...",B));
+  notes.push(...generateNotes(128,"D.D.K.D.D.D.D...",B));
+  notes.push(...generateNotes(132,"D...K.D.K.D.D.K.",B));
+  notes.push(...generateNotes(136,"D.D.D.D.D...D...",B));
+  // Finale (36-43): extended close
+  notes.push(...generateNotes(140,"D.D.K.D.D.D.K.D.",B));
+  notes.push(...generateNotes(144,"D...K.D.D...K.K.",B));
+  notes.push(...generateNotes(148,"D.D.K.D.D.D.K...",B));
+  notes.push(...generateNotes(152,"D...K.K.D...D.K.",B));
+  notes.push(...generateNotes(156,"DDDD....DDDD....",B));
+  notes.push(...generateNotes(160,"DDDD....DDDD....",B));
+  notes.push(...generateNotes(164,"D.D.D.D.D.D.D...",B));
+  notes.push(...generateNotes(168,"D...D...D...D.D.",B));
+  return notes;
+}
+
+
+
+// ===== 美少女战士 =====
+function buildSailorMoon(){const B=135;const n=[];n.push(...generateNotes(0,"D...D...D...D...",B));n.push(...generateNotes(4,"D...K...K...K.K.",B));n.push(...repeatPattern(8,"D...K...D...K.D.",B,4));n.push(...generateNotes(24,"D...D...K...K.K.",B));n.push(...repeatPattern(28,"D...K.D.D...K.D.",B,4));n.push(...generateNotes(44,"D.D.K.D.D.D.K...",B));n.push(...repeatPattern(48,"D...K...D...K.D.",B,4));n.push(...generateNotes(64,"D...D...D...D.D.",B));return n;}
+
+// ===== 圣斗士星矢 =====
+function buildSaintSeiya(){const B=165;const n=[];n.push(...generateNotes(0,"D...D...D.D.D...",B));n.push(...generateNotes(4,"D...K...D...K.K.",B));n.push(...repeatPattern(8,"D.D.K.D.D.K.D.D.",B,4));n.push(...generateNotes(24,"D.D.K.D.D.D.K...",B));n.push(...generateNotes(28,"DKDKDKDK........",B));n.push(...repeatPattern(32,"D.D.K.D.D.K.D.D.",B,4));n.push(...generateNotes(48,"D.D.K.D.D.D.K...",B));n.push(...generateNotes(52,"D...K.D.D...K.K.",B));n.push(...repeatPattern(56,"D.D.K.D.K.D.K.D.",B,4));n.push(...generateNotes(72,"D...D...D...D.D.",B));return n;}
+
+// ===== 精灵宝可梦 =====
+function buildPokemon(){const B=145;const n=[];n.push(...generateNotes(0,"D...D...D...D...",B));n.push(...generateNotes(4,"D...K...D...K.K.",B));n.push(...repeatPattern(8,"D.D.K...D.D.K...",B,4));n.push(...generateNotes(24,"D...D...K...K...",B));n.push(...repeatPattern(28,"D.D.K.D.D.K.D.D.",B,4));n.push(...generateNotes(44,"D...K.D.D...K.K.",B));n.push(...generateNotes(48,"D...D...D...D.D.",B));return n;}
+
+// ===== 超级马里奥 =====
+function buildMario(){const B=150;const n=[];n.push(...generateNotes(0,"D...D...K...K...",B));n.push(...generateNotes(4,"D...K.D.K...K.D.",B));n.push(...generateNotes(8,"D.D.K.K.D.D.K.K.",B));n.push(...generateNotes(12,"D...K.D.K.D.K.D.",B));n.push(...repeatPattern(16,"D.D.K.K.D...K.D.",B,4));n.push(...generateNotes(32,"D.D.K.K.D.D.K.K.",B));n.push(...generateNotes(36,"D...D...D...D...",B));n.push(...repeatPattern(40,"D.D.K.K.D...K.D.",B,3));n.push(...generateNotes(52,"D...D...D...D.D.",B));return n;}
+
+// ===== 街霸 =====
+function buildStreetFighter(){const B=130;const n=[];n.push(...generateNotes(0,"D...K...D...K.K.",B));n.push(...generateNotes(4,"D...K.D.K...D.K.",B));n.push(...repeatPattern(8,"D...K.D.K...K.D.",B,4));n.push(...generateNotes(24,"D...D...K...K.K.",B));n.push(...repeatPattern(28,"D...K.D.D...K.D.",B,4));n.push(...generateNotes(44,"D.D.K.D.D.D.K...",B));n.push(...repeatPattern(48,"D...K.D.K...K.D.",B,4));n.push(...generateNotes(64,"D...D...D...D.D.",B));return n;}
+
+// ===== 千与千寻 =====
+function buildSpiritedAway(){const B=120;const n=[];n.push(...generateNotes(0,"D...D...D...D...",B));n.push(...generateNotes(4,"D...K...K...K...",B));n.push(...repeatPattern(8,"D...D...K...K...",B,4));n.push(...generateNotes(24,"D...D...D...K.K.",B));n.push(...repeatPattern(28,"D...K...D...K.D.",B,4));n.push(...generateNotes(44,"D...D...D...K.K.",B));n.push(...generateNotes(48,"D...D...K...K.K.",B));n.push(...repeatPattern(52,"D...K...D...K.D.",B,3));n.push(...generateNotes(64,"D...D...D...D.D.",B));return n;}
+
+// ===== 你的名字 =====
+function buildYourName(){const B=190;const n=[];n.push(...generateNotes(0,"D...D...D.D.D...",B));n.push(...generateNotes(4,"D...K...D...K.K.",B));n.push(...repeatPattern(8,"D.D.K.D.D.K.D.D.",B,4));n.push(...generateNotes(24,"D.D.K.D.D.D.K...",B));n.push(...generateNotes(28,"DKDKDKDK........",B));n.push(...repeatPattern(32,"D.D.K.D.D.K.D.D.",B,4));n.push(...generateNotes(48,"D.D.K.D.D.D.K...",B));n.push(...generateNotes(52,"DKDKDKDK........",B));n.push(...repeatPattern(56,"D.D.K.D.D.K.D.D.",B,4));n.push(...generateNotes(72,"D...D...D...D.D.",B));return n;}
+
+// ===== 龙猫 =====
+function buildTotoro(){const B=128;const n=[];n.push(...generateNotes(0,"D...D...D...D...",B));n.push(...generateNotes(4,"K...K...K...K...",B));n.push(...repeatPattern(8,"D...K...D...K...",B,4));n.push(...generateNotes(24,"D.D.K...D.D.K...",B));n.push(...repeatPattern(28,"D...K...D...K.D.",B,4));n.push(...generateNotes(44,"D.D.K.D.D.D.K...",B));n.push(...repeatPattern(48,"D...K...D...K...",B,3));n.push(...generateNotes(60,"D...D...D...D.D.",B));return n;}
+
+// ===== 功夫 =====
+function buildKungFu(){const B=110;const n=[];n.push(...generateNotes(0,"D...K...K...K...",B));n.push(...generateNotes(4,"D...K.D.K...K.D.",B));n.push(...repeatPattern(8,"D...K.D.K...K.K.",B,4));n.push(...generateNotes(24,"D...D...K...K.K.",B));n.push(...repeatPattern(28,"D...K.D.D...K.D.",B,4));n.push(...generateNotes(44,"D.D.K.D.D.D.K...",B));n.push(...repeatPattern(48,"D...K.D.K...K.K.",B,3));n.push(...generateNotes(60,"D...D...D...D.D.",B));return n;}
+
+// ===== 哪吒 =====
+function buildNeZha(){const B=140;const n=[];n.push(...generateNotes(0,"DDDD....DDDD....",B));n.push(...generateNotes(4,"D...K...D...K.K.",B));n.push(...repeatPattern(8,"D.D.K.D.D.K.D.D.",B,4));n.push(...generateNotes(24,"DDDD....DDDD....",B));n.push(...generateNotes(28,"DKDKDKDK........",B));n.push(...repeatPattern(32,"D.D.K.D.D.K.D.D.",B,4));n.push(...generateNotes(48,"DDDD....DDDD....",B));n.push(...generateNotes(52,"D...K.D.D...K.K.",B));n.push(...repeatPattern(56,"D.D.K.D.K.D.K.D.",B,4));n.push(...generateNotes(72,"DDDD....DDDD....",B));n.push(...generateNotes(76,"D...D...D...D.D.",B));return n;}
+
+// ===== 全职猎人 "Departure!" =====
+function buildHxH() {
+  const B=160;
+  const GALLOP="D...K.D.D...K.D.";
+  const VERSE2="D...D...K...K.D.";
+  const CHORUS="D.D.K.D.K.D.K.K.";
+  const CLIMAX="DKDKDKDK........";
+  const notes=[];
+  // Intro (bars 0-7): adventurous buildup
+  notes.push(...generateNotes(0,"D...D...D...D...",B));
+  notes.push(...generateNotes(4,"D...D...D.D.D...",B));
+  notes.push(...generateNotes(8,"D...K...D...K...",B));
+  notes.push(...generateNotes(12,"D...K...D.D.K...",B));
+  notes.push(...generateNotes(16,"D...D...K...K.K.",B));
+  notes.push(...generateNotes(20,"D...K.D.D...D...",B));
+  notes.push(...generateNotes(24,"D...K.D.D.D.K...",B));
+  notes.push(...generateNotes(28,"D.D.K.D.D.D.D...",B));
+  // Verse (bars 8-23): galloping adventure
+  notes.push(...repeatPattern(32,GALLOP,B,8));
+  notes.push(...repeatPattern(64,VERSE2,B,4));
+  notes.push(...repeatPattern(80,GALLOP,B,4));
+  // Chorus (bars 24-39): upbeat Departure!
+  notes.push(...repeatPattern(96,CHORUS,B,4));
+  notes.push(...generateNotes(112,CLIMAX,B));
+  notes.push(...repeatPattern(116,CHORUS,B,4));
+  notes.push(...generateNotes(132,"D.D.K.D.D.D.K.K.",B));
+  notes.push(...repeatPattern(136,CHORUS,B,4));
+  notes.push(...generateNotes(152,"D.D.D.D.D...D...",B));
+  notes.push(...generateNotes(156,"D.D.K.D.K.D.K.K.",B));
+  // Finale (bars 40-51): grand finish
+  notes.push(...repeatPattern(160,CHORUS,B,4));
+  notes.push(...generateNotes(176,CLIMAX,B));
+  notes.push(...repeatPattern(180,CHORUS,B,2));
+  notes.push(...generateNotes(188,"D.D.K.D.D.D.D.D.",B));
+  notes.push(...generateNotes(192,CLIMAX,B));
+  notes.push(...repeatPattern(196,CHORUS,B,2));
+  notes.push(...generateNotes(204,"D...D...D...D.D.",B));
+  notes.push(...generateNotes(208,"D...D...D...D.D.",B));
+  return notes;
+}
+
+// ===== 钢之炼金术师 "Again" =====
+function buildFMA() {
+  const B=140;
+  const ROCK="D...K.D.K...D.K.";
+  const POWER="D...D...D.D.D...";
+  const CHORUS="D.D.K.D.K.D.K.D.";
+  const CLIMAX="DKDKDKDK........";
+  const notes=[];
+  // Intro (bars 0-7): powerful rock opening
+  notes.push(...generateNotes(0,"D...D...D...D...",B));
+  notes.push(...generateNotes(4,"D...D...D.D.D...",B));
+  notes.push(...generateNotes(8,"D...K...D...K...",B));
+  notes.push(...generateNotes(12,"D...K.D.D.D.K...",B));
+  notes.push(...generateNotes(16,"D.D.D.D.D...D...",B));
+  notes.push(...generateNotes(20,"D...K.D.D...K.K.",B));
+  notes.push(...generateNotes(24,"D.D.K.D.D.D.K...",B));
+  notes.push(...generateNotes(28,"D...K.D.D.D.D...",B));
+  // Verse (bars 8-23): rock groove
+  notes.push(...repeatPattern(32,ROCK,B,8));
+  notes.push(...repeatPattern(64,POWER,B,4));
+  notes.push(...repeatPattern(80,ROCK,B,4));
+  // Chorus (bars 24-39): powerful chorus
+  notes.push(...repeatPattern(96,CHORUS,B,4));
+  notes.push(...generateNotes(112,CLIMAX,B));
+  notes.push(...repeatPattern(116,CHORUS,B,4));
+  notes.push(...generateNotes(132,"D.D.D.D.D...K.K.",B));
+  notes.push(...repeatPattern(136,CHORUS,B,4));
+  notes.push(...generateNotes(152,"D...K.D.D.D.D...",B));
+  notes.push(...generateNotes(156,"D.D.K.D.K.D.K.D.",B));
+  // Finale (bars 40-51): epic ending
+  notes.push(...repeatPattern(160,CHORUS,B,4));
+  notes.push(...generateNotes(176,CLIMAX,B));
+  notes.push(...repeatPattern(180,CHORUS,B,2));
+  notes.push(...generateNotes(188,"D.D.K.D.D.D.K.K.",B));
+  notes.push(...generateNotes(192,CLIMAX,B));
+  notes.push(...repeatPattern(196,CHORUS,B,2));
+  notes.push(...generateNotes(204,"D...D...D...K.K.",B));
+  notes.push(...generateNotes(208,"D...D...D...D.D.",B));
+  return notes;
+}
+
+// ===== 数码宝贝 "Butter-Fly" =====
+function buildDigimon() {
+  const B=165;
+  const VERSE="D...K.D.D...K.D.";
+  const POP="D.D.K...D.D.K...";
+  const CHORUS="D.D.K.D.K.D.K.D.";
+  const CLIMAX="DKDKDKDK........";
+  const notes=[];
+  // Intro (bars 0-7): energetic pop opening
+  notes.push(...generateNotes(0,"D...D...D...D...",B));
+  notes.push(...generateNotes(4,"D...D...D.D.D...",B));
+  notes.push(...generateNotes(8,"D...K...D...K...",B));
+  notes.push(...generateNotes(12,"D...K...D.D.K...",B));
+  notes.push(...generateNotes(16,"D.D.K...D...D...",B));
+  notes.push(...generateNotes(20,"D.D.K...D.D.K...",B));
+  notes.push(...generateNotes(24,"D.D.K.D.D.D.K...",B));
+  notes.push(...generateNotes(28,"D...K.D.D.D.D...",B));
+  // Verse (bars 8-23): pop verse
+  notes.push(...repeatPattern(32,VERSE,B,8));
+  notes.push(...repeatPattern(64,POP,B,4));
+  notes.push(...repeatPattern(80,VERSE,B,4));
+  // Chorus (bars 24-39): bright energetic chorus
+  notes.push(...repeatPattern(96,CHORUS,B,4));
+  notes.push(...generateNotes(112,CLIMAX,B));
+  notes.push(...repeatPattern(116,CHORUS,B,4));
+  notes.push(...generateNotes(132,"D.D.K.D.D.D.K.K.",B));
+  notes.push(...repeatPattern(136,CHORUS,B,4));
+  notes.push(...generateNotes(152,"D.D.D.D.D...D...",B));
+  notes.push(...generateNotes(156,"D.D.K.D.K.D.K.D.",B));
+  // Finale (bars 40-51): big finish
+  notes.push(...repeatPattern(160,CHORUS,B,4));
+  notes.push(...generateNotes(176,CLIMAX,B));
+  notes.push(...repeatPattern(180,CHORUS,B,2));
+  notes.push(...generateNotes(188,"D.D.K.D.D.D.K.K.",B));
+  notes.push(...generateNotes(192,CLIMAX,B));
+  notes.push(...repeatPattern(196,CHORUS,B,2));
+  notes.push(...generateNotes(204,"D...D...D...D.D.",B));
+  notes.push(...generateNotes(208,"D...D...D...D.D.",B));
+  return notes;
+}
+
+// ===== 哆啦A梦 主题曲 =====
+function buildDoraemon() {
+  const B=125;
+  const VERSE="D...D...D...D...";
+  const BOUNCE="D.D.K...D.D.K...";
+  const CHORUS="D.D.K.D.K.D.K.K.";
+  const notes=[];
+  // Intro (bars 0-5): cheerful simple
+  notes.push(...generateNotes(0,"D...D...D...D...",B));
+  notes.push(...generateNotes(4,"D...K...D...K...",B));
+  notes.push(...generateNotes(8,"D.D.K...D.D.K...",B));
+  notes.push(...generateNotes(12,"D...D...K...K.K.",B));
+  notes.push(...generateNotes(16,"D...D...D...K...",B));
+  notes.push(...generateNotes(20,"D.D.D.D.D...D...",B));
+  // Verse (bars 6-17): bouncy
+  notes.push(...repeatPattern(24,VERSE,B,4));
+  notes.push(...repeatPattern(40,BOUNCE,B,4));
+  notes.push(...repeatPattern(56,VERSE,B,2));
+  notes.push(...generateNotes(64,"D.D.K...D.D.K.K.",B));
+  notes.push(...generateNotes(68,"D...D...D.D.D...",B));
+  // Chorus (bars 18-27): happy chorus
+  notes.push(...repeatPattern(72,CHORUS,B,4));
+  notes.push(...generateNotes(88,"D.D.K.D.K.D.K.D.",B));
+  notes.push(...repeatPattern(92,CHORUS,B,4));
+  notes.push(...generateNotes(108,"D.D.D.D.D...D...",B));
+  // Finale (bars 28-33): sweet ending
+  notes.push(...repeatPattern(112,CHORUS,B,2));
+  notes.push(...generateNotes(120,"D...D...D...D...",B));
+  notes.push(...generateNotes(124,"D...K...D...K.K.",B));
+  notes.push(...generateNotes(128,"D.D.K.D.D.D.K...",B));
+  notes.push(...generateNotes(132,"D...D...D...D.D.",B));
+  return notes;
+}
+
+// ===== 蜡笔小新 主题曲 =====
+function buildShinChan() {
+  const B=140;
+  const SILLY="D...K.D.K...D.K.";
+  const BOUNCE="D.K.D.K.D...K...";
+  const CHORUS="D.D.K.D.K.D.K.D.";
+  const notes=[];
+  // Intro (bars 0-5): silly bouncy
+  notes.push(...generateNotes(0,"D...D...D...D...",B));
+  notes.push(...generateNotes(4,"D...K...D...K...",B));
+  notes.push(...generateNotes(8,"D.K.D.K.D...D...",B));
+  notes.push(...generateNotes(12,"D...K.D.K...D.K.",B));
+  notes.push(...generateNotes(16,"D.D.K...D.D.K...",B));
+  notes.push(...generateNotes(20,"D...K.D.D.D.K...",B));
+  // Verse (bars 6-17): playful
+  notes.push(...repeatPattern(24,SILLY,B,4));
+  notes.push(...repeatPattern(40,BOUNCE,B,4));
+  notes.push(...repeatPattern(56,SILLY,B,2));
+  notes.push(...generateNotes(64,"D.K.D.K.D...K.K.",B));
+  notes.push(...generateNotes(68,"D.D.K.D.D.D.D...",B));
+  // Chorus (bars 18-27): energetic
+  notes.push(...repeatPattern(72,CHORUS,B,4));
+  notes.push(...generateNotes(88,"DKDKDKDK........",B));
+  notes.push(...repeatPattern(92,CHORUS,B,4));
+  notes.push(...generateNotes(108,"D.D.K.D.D.D.K.K.",B));
+  // Finale (bars 28-33): funny ending
+  notes.push(...repeatPattern(112,CHORUS,B,2));
+  notes.push(...generateNotes(120,"D...D...D...D...",B));
+  notes.push(...generateNotes(124,"D.K.D.K.D...K.K.",B));
+  notes.push(...generateNotes(128,"D.D.K.D.D.D.D...",B));
+  notes.push(...generateNotes(132,"D...D...D...D.D.",B));
+  return notes;
+}
+
+// ===== 千与千寻 "永远同在" =====
+function buildSpiritedAway() {
+  const B=120;
+  const notes=[];
+  // Intro (0-8 bars): gentle flowing sparse
+  notes.push(...generateNotes(0,"D...D...D...D...",B));
+  notes.push(...generateNotes(4,"D...D...D...D...",B));
+  notes.push(...generateNotes(8,"D...K...D...K...",B));
+  notes.push(...generateNotes(12,"D...D...D...D...",B));
+  notes.push(...generateNotes(16,"D...K...D...D...",B));
+  notes.push(...generateNotes(20,"D...K...D...K...",B));
+  notes.push(...generateNotes(24,"D...D.D.D...D...",B));
+  notes.push(...generateNotes(28,"D...K...D...D.D.",B));
+  // Verse (8-20 bars): gentle flowing
+  notes.push(...repeatPattern(32,"D...K...D...D...",B,4));
+  notes.push(...repeatPattern(48,"D...K...D...K...",B,4));
+  notes.push(...repeatPattern(64,"D...D...D...K...",B,4));
+  // Chorus (20-32 bars): gentle but more active
+  notes.push(...repeatPattern(80,"D.D.K.D.D...D...",B,4));
+  notes.push(...generateNotes(96,"D...K...D...K...",B));
+  notes.push(...repeatPattern(100,"D.D.K.D.D...K...",B,4));
+  notes.push(...generateNotes(116,"D...D...D...K.K.",B));
+  notes.push(...repeatPattern(120,"D.D.K.D.D...D...",B,3));
+  // Finale (32-36 bars): gentle close
+  notes.push(...generateNotes(132,"D...D...D...D...",B));
+  notes.push(...generateNotes(136,"D...K...D...K...",B));
+  notes.push(...generateNotes(140,"D...D...D...D...",B));
+  notes.push(...generateNotes(144,"D...D...D...D.D.",B));
+  return notes;
+}
+
+// ===== 你的名字 "前前前世" =====
+function buildYourName() {
+  const B=190;
+  const notes=[];
+  const CORE="D.D.K.D.D.K.D.D.";
+  // Intro (0-8 bars): explosive rock start
+  notes.push(...generateNotes(0,"D...D...D.D.D...",B));
+  notes.push(...generateNotes(4,"D.D.D.D.D...D...",B));
+  notes.push(...generateNotes(8,"D...K...D...K.K.",B));
+  notes.push(...generateNotes(12,"D.D.K.D.K.D.K.D.",B));
+  notes.push(...generateNotes(16,"DKDKDKDK........",B));
+  notes.push(...generateNotes(20,"D...K...D.D.K...",B));
+  notes.push(...generateNotes(24,"D.D.K.D.D.D.D...",B));
+  notes.push(...generateNotes(28,"D...K.D.K.D.K.D.",B));
+  // Verse (8-24 bars): fast energetic
+  notes.push(...repeatPattern(32,CORE,B,4));
+  notes.push(...generateNotes(48,"D.D.K.D.D.D.K...",B));
+  notes.push(...generateNotes(52,"DKDKDKDK........",B));
+  notes.push(...repeatPattern(56,CORE,B,4));
+  notes.push(...generateNotes(72,"D.D.K.D.D.D.K...",B));
+  notes.push(...generateNotes(76,"D...K.D.K.D.K.D.",B));
+  notes.push(...repeatPattern(80,CORE,B,4));
+  // Chorus (24-44 bars): HIGH intensity
+  notes.push(...repeatPattern(96,"D.D.K.D.K.D.K.D.",B,4));
+  notes.push(...generateNotes(112,"DKDKDKDK........",B));
+  notes.push(...repeatPattern(116,"D.D.K.D.K.D.K.D.",B,4));
+  notes.push(...generateNotes(132,"D.D.K.D.D.D.K...",B));
+  notes.push(...generateNotes(136,"DKDKDKDK........",B));
+  notes.push(...repeatPattern(140,"D.D.K.D.K.D.K.D.",B,4));
+  notes.push(...generateNotes(156,"D.D.K.D.D.D.K...",B));
+  notes.push(...generateNotes(160,"D...K.D.K.D.K.D.",B));
+  notes.push(...generateNotes(164,"D.D.K.D.K.D.K.D.",B));
+  notes.push(...generateNotes(168,"DKDKDKDK........",B));
+  // Finale (44-56 bars): intense close
+  notes.push(...repeatPattern(172,CORE,B,4));
+  notes.push(...generateNotes(188,"D.D.K.D.D.D.K...",B));
+  notes.push(...generateNotes(192,"DKDKDKDK........",B));
+  notes.push(...repeatPattern(196,"D.D.K.D.D.K.D.D.",B,4));
+  notes.push(...generateNotes(212,"D.D.K.D.D.D.K.D.",B));
+  notes.push(...generateNotes(216,"D...D...D...D.D.",B));
+  notes.push(...generateNotes(220,"D...D...D...D...",B));
+  notes.push(...generateNotes(224,"D...D...D...D.D.",B));
+  return notes;
+}
+
+// ===== 龙猫 "散步" =====
+function buildTotoro() {
+  const B=128;
+  const notes=[];
+  // Intro (0-6 bars): bouncy cheerful
+  notes.push(...generateNotes(0,"D...D...D.D.D...",B));
+  notes.push(...generateNotes(4,"D...K...D...K...",B));
+  notes.push(...generateNotes(8,"D...D...D.D.D...",B));
+  notes.push(...generateNotes(12,"D...K...D...D.D.",B));
+  notes.push(...generateNotes(16,"D...D...K...K...",B));
+  notes.push(...generateNotes(20,"D.D.D.D.D...D...",B));
+  // Verse (6-18 bars): cheerful walking feel
+  notes.push(...repeatPattern(24,"D...K...D.D.K...",B,4));
+  notes.push(...repeatPattern(40,"D...K...D...K.D.",B,4));
+  notes.push(...repeatPattern(56,"D.D.K...D...K...",B,4));
+  // Chorus (18-28 bars): happy D.D.K.D. patterns
+  notes.push(...repeatPattern(72,"D.D.K.D.D...K...",B,4));
+  notes.push(...generateNotes(88,"D...K...D...K...",B));
+  notes.push(...repeatPattern(92,"D.D.K.D.D.D.K...",B,4));
+  notes.push(...generateNotes(108,"D...D...D...K.K.",B));
+  // Finale (28-32 bars): cheerful close
+  notes.push(...generateNotes(112,"D...D...D...D...",B));
+  notes.push(...generateNotes(116,"D...K...D...K...",B));
+  notes.push(...generateNotes(120,"D...D...D.D.D...",B));
+  notes.push(...generateNotes(124,"D...D...D...D.D.",B));
+  return notes;
+}
+
+// ===== 功夫 "Kung Fu Fighting" =====
+function buildKungFu() {
+  const B=110;
+  const notes=[];
+  // Intro (0-6 bars): funky syncopated K intro
+  notes.push(...generateNotes(0,"D...K...D...K...",B));
+  notes.push(...generateNotes(4,"K...D...K...D...",B));
+  notes.push(...generateNotes(8,"D...K.K.D...K...",B));
+  notes.push(...generateNotes(12,"K...D...K.K.D...",B));
+  notes.push(...generateNotes(16,"D.K.D...K.D.K...",B));
+  notes.push(...generateNotes(20,"D...K.D.K...D.K.",B));
+  // Verse (6-18 bars): K-heavy groove
+  notes.push(...repeatPattern(24,"D.K.D...K.D.K...",B,4));
+  notes.push(...repeatPattern(40,"D...K.K.D...K.K.",B,4));
+  notes.push(...repeatPattern(56,"D.K.D...K.D.K...",B,4));
+  // Chorus (18-26 bars): syncopated K patterns
+  notes.push(...repeatPattern(72,"D.D.K.D.K.K.D.K.",B,4));
+  notes.push(...generateNotes(88,"D.K.D.K.D.K.D.K.",B));
+  notes.push(...repeatPattern(92,"D.D.K.D.K.K.D.K.",B,4));
+  // Finale (26-30 bars): funky close
+  notes.push(...generateNotes(108,"D.K.D...K.D.K...",B));
+  notes.push(...generateNotes(112,"D...K.K.D...K.K.",B));
+  notes.push(...generateNotes(116,"D.K.D.K.D...D.K.",B));
+  notes.push(...generateNotes(120,"D...K...D...D.D.",B));
+  return notes;
+}
+
+// ===== 哪吒之魔童降世 =====
+function buildNeZha() {
+  const B=140;
+  const notes=[];
+  const ROCK="D.D.K.D.D.K.D.D.";
+  // Intro (0-6 bars): dramatic DDDD bursts
+  notes.push(...generateNotes(0,"DDDD....DDDD....",B));
+  notes.push(...generateNotes(4,"DDDD....DDDD....",B));
+  notes.push(...generateNotes(8,"D...D...D...D...",B));
+  notes.push(...generateNotes(12,"DDDD....DDDD....",B));
+  notes.push(...generateNotes(16,"D...K...D...K...",B));
+  notes.push(...generateNotes(20,"D.D.D.D.D...D...",B));
+  // Verse (6-22 bars): intense rock patterns
+  notes.push(...repeatPattern(24,ROCK,B,4));
+  notes.push(...generateNotes(40,"D.D.K.D.D.D.K...",B));
+  notes.push(...generateNotes(44,"DKDKDKDK........",B));
+  notes.push(...repeatPattern(48,ROCK,B,4));
+  notes.push(...generateNotes(64,"D.D.K.D.D.D.K...",B));
+  notes.push(...generateNotes(68,"DDDD....DDDD....",B));
+  notes.push(...generateNotes(72,"D.D.K.D.K.D.K.D.",B));
+  notes.push(...repeatPattern(76,ROCK,B,4));
+  // Chorus (22-40 bars): climax with DDDD + DKDKDKDK
+  notes.push(...repeatPattern(92,"DDDD....D.D.K.D.",B,4));
+  notes.push(...generateNotes(108,"DKDKDKDK........",B));
+  notes.push(...repeatPattern(112,"DDDD....D.D.K.D.",B,2));
+  notes.push(...generateNotes(120,"DKDKDKDK........",B));
+  notes.push(...repeatPattern(124,"D.D.K.D.K.D.K.D.",B,4));
+  notes.push(...generateNotes(140,"DDDD....DDDD....",B));
+  notes.push(...generateNotes(144,"DDDD....DDDD....",B));
+  notes.push(...generateNotes(148,"D.D.K.D.D.D.K...",B));
+  notes.push(...generateNotes(152,"DKDKDKDK........",B));
+  // Finale (40-46 bars): explosive close
+  notes.push(...repeatPattern(156,ROCK,B,4));
+  notes.push(...generateNotes(172,"DDDD....DDDD....",B));
+  notes.push(...generateNotes(176,"DDDD....DDDD....",B));
+  notes.push(...generateNotes(180,"D.D.K.D.D.D.K.D.",B));
+  notes.push(...generateNotes(184,"D.D.D.D.D...D...",B));
+  notes.push(...generateNotes(188,"D...D...D...D.D.",B));
+  return notes;
+}
+
+// ==================== RHYTHM ENGINE ====================
+class RhythmEngine {
+  constructor(callbacks = {}) {
+    this._song = null;
+    this._notes = [];
+    this._noteIndex = 0;
+    this._score = 0;
+    this._combo = 0;
+    this._maxCombo = 0;
+    this._perfects = 0;
+    this._goods = 0;
+    this._misses = 0;
+    this._totalJudged = 0;
+    this._state = "idle";    // idle | playing | paused | ended
+    this._startTime = 0;     // wall-clock ref point — NEVER modified after start()
+    this._elapsed = 0;       // musical position in seconds
+    this._pauseOffset = 0;   // accumulated pause time — only incremented
+    this._pauseStart = 0;    // wall-clock when pause began
+    this._timerId = null;
+    this._autoId = null;
+    this._countdown = 0;
+
+    // Timing windows (ms)
+    this.perfectWindow = 60;
+    this.goodWindow = 140;
+
+    // Callbacks
+    this._cb = callbacks;
+  }
+
+  // ---- Read-only accessors ----
+  get state() { return this._state; }
+  get song() { return this._song; }
+  get notes() { return this._notes; }
+  get noteIndex() { return this._noteIndex; }
+  get score() { return this._score; }
+  get combo() { return this._combo; }
+  get maxCombo() { return this._maxCombo; }
+  get perfects() { return this._perfects; }
+  get goods() { return this._goods; }
+  get misses() { return this._misses; }
+  get totalNotes() { return this._notes.filter(n => n.time <= (this._song ? this._song.duration : 0)).length; }
+  get accuracy() {
+    const t = this.totalNotes;
+    return t > 0 ? (this._perfects + this._goods * 0.5) / t : 0;
+  }
+  get elapsed() { return this._elapsed; }
+  get isPlaying() { return this._state === "playing"; }
+  get isFinished() { return this._state === "ended"; }
+
+  // ---- Lifecycle ----
+  load(songData) {
+    this._song = songData;
+    this._notes = songData.notes
+      .map(n => ({ ...n, judged: false, played: false }))
+      .sort((a, b) => a.t - b.t);
+    this.reset();
+  }
+
+  start(countdownSec = 2) {
+    if (!this._song || this._state === "playing") return;
+    this.reset();
+    this._countdown = countdownSec;
+    this._startTime = performance.now() / 1000 + countdownSec;
+    this._state = "playing";
+    this._emit("start");
+    this._tick(performance.now());
+  }
+
+  reset() {
+    this._stopTimer();
+    this._score = 0; this._combo = 0; this._maxCombo = 0;
+    this._perfects = 0; this._goods = 0; this._misses = 0;
+    this._totalJudged = 0; this._noteIndex = 0;
+    this._elapsed = 0; this._countdown = 0;
+    this._pauseOffset = 0; this._pauseStart = 0;
+    this._notes.forEach(n => { n.judged = false; n.played = false; });
+  }
+
+  stop() {
+    this._stopTimer();
+    this._state = "idle";
+    this._emit("stop");
+  }
+
+  pause() {
+    if (this._state !== "playing") return;
+    this._state = "paused";
+    this._pauseStart = performance.now() / 1000;
+    this._stopTimer();
+    this._emit("pause");
+  }
+
+  resume() {
+    if (this._state !== "paused") return;
+    // Increment pause offset — _startTime NEVER changes
+    this._pauseOffset += performance.now() / 1000 - this._pauseStart;
+    this._state = "playing";
+    this._emit("resume");
+    this._tick(performance.now());
+  }
+
+  _stopTimer() {
+    if (this._timerId) { cancelAnimationFrame(this._timerId); this._timerId = null; }
+    if (this._autoId) { clearTimeout(this._autoId); this._autoId = null; }
+  }
+
+  _tick(now) {
+    if (this._state !== "playing") return;
+    // Musical position = wall-clock - reference-point - accumulated-pauses
+    // _startTime is immutable after start(); _pauseOffset is only incremented
+    this._elapsed = now / 1000 - this._startTime - this._pauseOffset;
+    if (this._elapsed < 0) this._elapsed = 0;
+
+    // Auto-judge passed notes
+    while (this._noteIndex < this._notes.length && this._notes[this._noteIndex].time <= this._elapsed) {
+      const n = this._notes[this._noteIndex];
+      if (!n.judged) {
+        n.judged = true;
+        this._misses++;
+        this._combo = 0;
+        this._emit("miss", { note: n, reason: "auto" });
+        this._emit("comboChange");
+        // Play sound late so player hears the miss
+        if (!n.played) { n.played = true; this._emit("playNote", n); }
+      }
+      this._noteIndex++;
+    }
+
+    // Check end
+    if (this._elapsed > (this._song.duration + 1)) {
+      this._finish();
+      return;
+    }
+
+    this._emit("tick", { elapsed: this._elapsed });
+    this._timerId = requestAnimationFrame(t => this._tick(t));
+  }
+
+  _finish() {
+    this._stopTimer();
+    this._state = "ended";
+    // Auto-judge remaining
+    for (const n of this._notes) {
+      if (!n.judged && n.time <= this._song.duration) {
+        n.judged = true; this._misses++;
+      }
+    }
+    this._emit("complete", {
+      score: this._score, combo: this._maxCombo,
+      perfects: this._perfects, goods: this._goods, misses: this._misses,
+      accuracy: this.accuracy
+    });
+  }
+
+  // ---- Input ----
+  hit(type) {
+    if (this._state !== "playing") return null;
+
+    let bestNote = null;
+    let bestDist = Infinity;
+
+    for (let i = this._noteIndex; i < Math.min(this._noteIndex + 10, this._notes.length); i++) {
+      const n = this._notes[i];
+      if (n.judged || n.type !== type) continue;
+      const dist = Math.abs(n.time - this._elapsed) * 1000;
+      if (dist < bestDist && dist < this.goodWindow + 40) {
+        bestDist = dist; bestNote = n;
+      }
+    }
+
+    if (!bestNote) {
+      this._combo = 0;
+      this._emit("comboChange");
+      return { result: "whiff" };
+    }
+
+    bestNote.judged = true;
+    const dist = Math.abs(bestNote.time - this._elapsed) * 1000;
+    let result;
+
+    if (dist <= this.perfectWindow) {
+      this._score += 300 + Math.floor(this._combo * 0.5);
+      this._combo++; this._perfects++;
+      result = "perfect";
+    } else if (dist <= this.goodWindow) {
+      this._score += 150 + Math.floor(this._combo * 0.3);
+      this._combo++; this._goods++;
+      result = "good";
+    } else {
+      this._combo = 0; this._misses++;
+      result = "miss";
+    }
+
+    if (this._combo > this._maxCombo) this._maxCombo = this._combo;
+    if (!bestNote.played) { bestNote.played = true; this._emit("playNote", bestNote); }
+    this._emit("judgment", { result, note: bestNote, combo: this._combo, dist });
+    this._emit("comboChange");
+    return { result, note: bestNote, combo: this._combo, dist };
+  }
+
+  // ---- Get upcoming notes for rendering ----
+  getVisibleNotes(lookBehindSec = 0.2, lookAheadSec = 5) {
+    const start = this._elapsed - lookBehindSec;
+    const end = this._elapsed + lookAheadSec;
+    const visible = [];
+    for (let i = Math.max(0, this._noteIndex - 4); i < this._notes.length; i++) {
+      const n = this._notes[i];
+      if (n.time < start) continue;
+      if (n.time > end) break;
+      visible.push(n);
+    }
+    return visible;
+  }
+
+  // ---- Events ----
+  _emit(event, data) {
+    if (this._cb[event]) this._cb[event](data);
+  }
+}
+
+// ==================== GAME STATE ====================
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+// Create engine with callbacks wired to game UI + audio
+const engine = new RhythmEngine({
+  playNote(n) {
+    if (!audioCtx) return;
+    if (n.type === "don") playDon(audioCtx.currentTime + 0.01);
+    else playKa(audioCtx.currentTime + 0.01);
+  },
+  judgment(data) {
+    if (data.result === "perfect") { drumFlash = 0.2; drumShake = 8; showJudgment("良", "judge-perfect"); }
+    else if (data.result === "good") { drumFlash = 0.1; drumShake = 4; showJudgment("可", "judge-good"); }
+    else { showJudgment("不可", "judge-miss"); }
+  },
+  miss(data) { showJudgment("不可", "judge-miss"); },
+  comboChange() { updateCombo(); },
+  tick() { updateScore(); },
+  complete(data) { endGame(data); }
+});
+
+let animFrameId = null;
+
+// Visual
+let drumShake = 0;
+let drumFlash = 0;
+
+// Lane constants
+const HIT_X = 0.22;
+const NOTE_SPEED_FACTOR = 220;
+
+// ==================== INPUT ====================
+function handleDon() { engine.hit("don"); }
+function handleKa() { engine.hit("ka"); }
+
+// Touch input
+canvas.addEventListener("touchstart", e => {
+  e.preventDefault();
+  initAudio();
+  for (const t of e.changedTouches) {
+    const x = t.clientX / window.innerWidth;
+    if (x < 0.5) handleDon(); else handleKa();
+  }
+}, {passive: false});
+
+// Keyboard input
+window.addEventListener("keydown", e => {
+  if (e.repeat) return;
+  initAudio();
+  switch(e.key.toLowerCase()) {
+    case "d": case "f": handleDon(); break;
+    case "j": case "k": handleKa(); break;
+    case " ": e.preventDefault(); break;
+  }
+});
+
+// Click to start on desktop
+canvas.addEventListener("click", initAudio);
+
+// ==================== VOICE INPUT (glasses/watch) ====================
+let voiceRecog = null;
+let glassesMode = false;
+
+function detectGlasses() {
+  const w = Math.min(window.innerWidth, screen.width || 9999);
+  const h = Math.min(window.innerHeight, screen.height || 9999);
+  // Smart glasses typically have narrow aspect ratios (e.g. 640x400)
+  glassesMode = (w <= 420 && h <= 340) || (w <= 340 && h <= 420);
+  if (glassesMode) { startVoiceInput(); }
+  return glassesMode;
+}
+
+function startVoiceInput() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return;
+  try {
+    voiceRecog = new SR();
+    voiceRecog.lang = "zh-CN";
+    voiceRecog.continuous = true;
+    voiceRecog.interimResults = false;
+    voiceRecog.onresult = (e) => {
+      const txt = e.results[e.results.length-1][0].transcript.trim();
+      if (/咚|don|东|动|通/i.test(txt)) { handleDon(); }
+      else if (/咔|ka|卡|咖|擦/i.test(txt)) { handleKa(); }
+    };
+    voiceRecog.onerror = () => {}; // silently retry
+    voiceRecog.onend = () => { if (glassesMode) voiceRecog.start(); };
+    voiceRecog.start();
+    document.getElementById("voice-mode-bar").classList.add("show");
+  } catch(e) {}
+}
+
+function stopVoiceInput() {
+  if (voiceRecog) { try { voiceRecog.stop(); } catch(e) {}; voiceRecog = null; }
+  document.getElementById("voice-mode-bar").classList.remove("show");
+}
+
+// ==================== SMART RING INPUT (DeviceOrientation) ====================
+let ringActive = false;
+let ringBeta = 0, ringGamma = 0;
+let ringFrameCount = 0;
+const RING_THROTTLE = 8;
+const RING_TILT_THRESH = 5;
+const RING_SHAKE_THRESH = 20;
+
+function initRing() {
+  if (typeof DeviceOrientationEvent === 'undefined') return;
+  if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+    document.addEventListener('click', function ringPerm() {
+      DeviceOrientationEvent.requestPermission()
+        .then(state => { if (state === 'granted') startRing(); })
+        .catch(() => {});
+    }, { once: true });
+  } else {
+    startRing();
+  }
+}
+
+function startRing() {
+  ringActive = true;
+  window.addEventListener('deviceorientation', onRingOrientation);
+}
+
+function onRingOrientation(e) {
+  if (!ringActive) return;
+  ringFrameCount++;
+  if (ringFrameCount % RING_THROTTLE !== 0) return;
+  const beta = e.beta || 0, gamma = e.gamma || 0;
+  const dBeta = beta - ringBeta, dGamma = gamma - ringGamma;
+  ringBeta = beta; ringGamma = gamma;
+  if (Math.abs(dBeta) > RING_SHAKE_THRESH || Math.abs(dGamma) > RING_SHAKE_THRESH) {
+    handleDon(); return;
+  }
+  if (dBeta < -RING_TILT_THRESH) { handleDon(); }
+  else if (dBeta > RING_TILT_THRESH) { handleDon(); }
+  else if (dGamma < -RING_TILT_THRESH) { handleKa(); }
+  else if (dGamma > RING_TILT_THRESH) { handleKa(); }
+}
+
+// ==================== SMART CANE INPUT (DeviceMotion) ====================
+let caneActive = false;
+let caneFrameCount = 0;
+const CANE_THROTTLE = 6;
+const CANE_TAP_THRESH = 8;
+const CANE_SWING_THRESH = 3;
+
+function initCane() {
+  if (typeof DeviceMotionEvent === 'undefined') return;
+  if (typeof DeviceMotionEvent.requestPermission === 'function') {
+    document.addEventListener('click', function canePerm() {
+      DeviceMotionEvent.requestPermission()
+        .then(state => { if (state === 'granted') startCane(); })
+        .catch(() => {});
+    }, { once: true });
+  } else {
+    startCane();
+  }
+}
+
+function startCane() {
+  caneActive = true;
+  window.addEventListener('devicemotion', onCaneMotion);
+}
+
+function onCaneMotion(e) {
+  if (!caneActive) return;
+  caneFrameCount++;
+  if (caneFrameCount % CANE_THROTTLE !== 0) return;
+  const acc = e.accelerationIncludingGravity || e.acceleration || {};
+  const ax = acc.x || 0, ay = acc.y || 0, az = acc.z || 0;
+  const dmag = Math.sqrt(ax*ax + ay*ay + az*az);
+  if (dmag > CANE_TAP_THRESH) { handleDon(); return; }
+  if (Math.abs(ax) > CANE_SWING_THRESH || Math.abs(ay) > CANE_SWING_THRESH) {
+    handleKa();
+  }
+}
+
+// ==================== UI ====================
+function showJudgment(text, cls) {
+  const el = document.getElementById("judgment");
+  el.textContent = text;
+  el.className = cls;
+  void el.offsetWidth;
+  el.className = cls;
+  setTimeout(() => { el.className = ""; el.textContent = ""; }, 600);
+}
+
+function updateScore() {
+  document.getElementById("score-value").textContent = engine.score;
+  const t = engine.totalNotes;
+  const hit = engine.perfects + engine.goods;
+  document.getElementById("acc-value").textContent =
+    t > 0 ? Math.round(hit / Math.max(t, hit + engine.misses) * 100) + "%" : "--%";
+}
+
+function updateCombo() {
+  const el = document.getElementById("combo-value");
+  const c = engine.combo;
+  el.textContent = c;
+  if (c >= 10) {
+    el.style.opacity = "1";
+    el.style.transform = "scale(1.15)";
+    setTimeout(() => el.style.transform = "scale(1)", 80);
+  } else if (c > 0) {
+    el.style.opacity = "0.7";
+  } else {
+    el.style.opacity = "0";
+  }
+}
+
+// ==================== GAME LOOP ====================
+function startGame(songId) {
+  initAudio();
+  const songData = SONGS.find(s => s.id === songId) || SONGS[0];
+  engine.load(songData);
+  engine.start(2);
+
+  document.getElementById("start-screen").style.display = "none";
+  document.getElementById("hud").style.display = "flex";
+  document.getElementById("result-screen").classList.remove("show");
+  document.getElementById("combo-value").style.opacity = "0";
+  updateScore();
+  updateCombo();
+
+  resize();
+  renderLoop();
+}
+
+function restartGame() {
+  engine.stop();
+  if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
+  document.getElementById("start-screen").style.display = "flex";
+  document.getElementById("hud").style.display = "none";
+  document.getElementById("result-screen").classList.remove("show");
+  document.getElementById("combo-value").style.opacity = "0";
+}
+
+function renderLoop() {
+  if (engine.isFinished) return;
+  // Update visual effects
+  if (drumShake > 0) drumShake *= 0.85;
+  if (drumFlash > 0) drumFlash *= 0.85;
+  render();
+  animFrameId = requestAnimationFrame(renderLoop);
+}
+
+function endGame(data) {
+  if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
+  document.getElementById("hud").style.display = "none";
+  const rs = document.getElementById("result-screen");
+  rs.classList.add("show");
+  document.getElementById("r-perfect").textContent = data.perfects;
+  document.getElementById("r-good").textContent = data.goods;
+  document.getElementById("r-miss").textContent = data.misses;
+  document.getElementById("r-maxcombo").textContent = data.combo;
+  document.getElementById("r-score").textContent = data.score;
+
+  const gradeEl = document.getElementById("result-grade");
+  if (data.accuracy >= 0.95) gradeEl.textContent = "🥇";
+  else if (data.accuracy >= 0.85) gradeEl.textContent = "🥈";
+  else if (data.accuracy >= 0.70) gradeEl.textContent = "🥉";
+  else gradeEl.textContent = "💪";
+
+  // Final drum hits
+  setTimeout(() => playDon(), 200);
+  setTimeout(() => playDon(), 500);
+  setTimeout(() => playDon(), 800);
+}
+
+// ==================== RENDER ====================
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener("resize", resize);
+
+function render() {
+  const W = canvas.width;
+  const H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const hitX = W * HIT_X;
+  const laneY1 = H * 0.28; // don lane
+  const laneY2 = H * 0.72; // ka lane
+  const laneR = Math.min(W * 0.06, 40);
+
+  // ===== Background =====
+  // Subtle gradient
+  const bgGrad = ctx.createRadialGradient(W*0.3, H*0.5, 0, W*0.3, H*0.5, W*0.8);
+  bgGrad.addColorStop(0, "#1a1410"); bgGrad.addColorStop(1, "#0a0806");
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  // ===== Drum flash =====
+  if (drumFlash > 0.01) {
+    const fg = ctx.createRadialGradient(hitX, H*0.5, 0, hitX, H*0.5, W*0.15);
+    fg.addColorStop(0, `rgba(240,200,100,${drumFlash})`);
+    fg.addColorStop(1, "rgba(240,200,100,0)");
+    ctx.fillStyle = fg; ctx.fillRect(0, 0, W, H);
+  }
+
+  // ===== Hit zone line =====
+  ctx.strokeStyle = "rgba(200,150,80,0.6)";
+  ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(hitX, 0); ctx.lineTo(hitX, H); ctx.stroke();
+
+  // Hit zone glow
+  const glowGrad = ctx.createLinearGradient(hitX - 30, 0, hitX + 30, 0);
+  glowGrad.addColorStop(0, "rgba(200,150,80,0)");
+  glowGrad.addColorStop(0.5, "rgba(200,150,80,0.15)");
+  glowGrad.addColorStop(1, "rgba(200,150,80,0)");
+  ctx.fillStyle = glowGrad; ctx.fillRect(hitX - 30, 0, 60, H);
+
+  // ===== Lane indicators =====
+  // Don lane (left, upper)
+  ctx.strokeStyle = "#d4a03044"; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, laneY1); ctx.lineTo(W, laneY1); ctx.stroke();
+  ctx.strokeStyle = "#c0604044";
+  ctx.beginPath(); ctx.moveTo(0, laneY2); ctx.lineTo(W, laneY2); ctx.stroke();
+
+  // ===== Drum visualization at hit zone =====
+  const sx = drumShake ? (Math.random() - 0.5) * drumShake : 0;
+  const sy = drumShake ? (Math.random() - 0.5) * drumShake : 0;
+  drawDrum(hitX + sx, H*0.5 + sy, laneR * 1.8);
+
+  // ===== Notes =====
+  const s = engine.song;
+  if (!s) return;
+  const beatWidth = NOTE_SPEED_FACTOR * (s.bpm / 120) * (W / 800);
+  const now = engine.elapsed;
+  const visibleNotes = engine.getVisibleNotes(0.3, 6);
+
+  for (const n of visibleNotes) {
+    const x = hitX + (n.time - now) * beatWidth;
+    const y = n.type === "don" ? laneY1 : laneY2;
+    const r = laneR;
+    const alpha = n.judged ? 0.3 : 1;
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+
+    if (n.type === "don") {
+      // 咚 — 红色圆 (鼓面)
+      const dg = ctx.createRadialGradient(x, y, r*0.2, x, y, r);
+      dg.addColorStop(0, "#e84040");
+      dg.addColorStop(0.7, "#8b2020");
+      dg.addColorStop(1, "#4a1010");
+      ctx.fillStyle = dg;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+      // Border
+      ctx.strokeStyle = "#ff6060"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.stroke();
+      // Inner circle
+      ctx.strokeStyle = "#ff909044"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(x, y, r*0.5, 0, Math.PI*2); ctx.stroke();
+    } else {
+      // 咔 — 蓝色菱形 (鼓边)
+      ctx.fillStyle = "#4080e0";
+      ctx.strokeStyle = "#6090ff";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x, y - r);
+      ctx.lineTo(x + r, y);
+      ctx.lineTo(x, y + r);
+      ctx.lineTo(x - r, y);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+      // Inner diamond
+      ctx.strokeStyle = "#80b0ff44"; ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, y - r*0.4);
+      ctx.lineTo(x + r*0.4, y);
+      ctx.lineTo(x, y + r*0.4);
+      ctx.lineTo(x - r*0.4, y);
+      ctx.closePath();
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  // ===== Labels at hit zone =====
+  ctx.fillStyle = "#d4a03088"; ctx.font = `${Math.max(12, W*0.025)}px "PingFang SC","Microsoft YaHei",sans-serif`;
+  ctx.textAlign = "center";
+  ctx.fillText("咚", hitX - laneR*2.5, laneY1 + 6);
+  ctx.fillStyle = "#6090ff88";
+  ctx.fillText("咔", hitX - laneR*2.5, laneY2 + 6);
+
+  // ===== Progress bar =====
+  const progY = H - 8;
+  const progW = W - 40;
+  const progX = 20;
+  const pct = s ? Math.min(engine.elapsed / s.duration, 1) : 0;
+  ctx.fillStyle = "#2a2018"; ctx.fillRect(progX, progY, progW, 4);
+  ctx.fillStyle = "#d4a030"; ctx.fillRect(progX, progY, progW * pct, 4);
+
+  // Title
+  ctx.fillStyle = "#a0907066"; ctx.font = `${Math.max(11,W*0.022)}px "PingFang SC","Microsoft YaHei",sans-serif`;
+  ctx.textAlign = "right";
+  ctx.fillText(s ? s.title : "", W - 20, H - 16);
+}
+
+// ==================== DRUM VISUAL ====================
+function drawDrum(cx, cy, r) {
+  // Drum body (side view ellipse)
+  ctx.fillStyle = "#5a3020";
+  ctx.beginPath(); ctx.ellipse(cx, cy, r, r*0.5, 0, 0, Math.PI*2); ctx.fill();
+  
+  // Drum skin (top ellipse, slightly smaller)
+  const skinGrad = ctx.createRadialGradient(cx, cy - r*0.05, 0, cx, cy, r);
+  skinGrad.addColorStop(0, "#e8d8b8");
+  skinGrad.addColorStop(0.6, "#c8a870");
+  skinGrad.addColorStop(1, "#8b6030");
+  ctx.fillStyle = skinGrad;
+  ctx.beginPath(); ctx.ellipse(cx, cy - r*0.1, r*0.85, r*0.4, 0, 0, Math.PI*2); ctx.fill();
+
+  // Drum rim (outer ring, top)
+  ctx.strokeStyle = "#a07030"; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.ellipse(cx, cy - r*0.1, r*0.85, r*0.4, 0, 0, Math.PI*2); ctx.stroke();
+
+  // Decorative rivets
+  ctx.fillStyle = "#d4a030";
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2;
+    const rx = cx + Math.cos(angle) * r * 0.78;
+    const ry = cy - r*0.1 + Math.sin(angle) * r * 0.32;
+    ctx.beginPath(); ctx.arc(rx, ry, r*0.06, 0, Math.PI*2); ctx.fill();
+  }
+
+  // Side rivets
+  ctx.fillStyle = "#c08030";
+  for (let i = 0; i < 4; i++) {
+    const angle = -Math.PI/2 + (i / 3.5) * Math.PI;
+    const rx = cx + Math.cos(angle) * r * 0.9;
+    const ry = cy + Math.sin(angle) * r * 0.45;
+    ctx.beginPath(); ctx.arc(rx, ry, r*0.04, 0, Math.PI*2); ctx.fill();
+  }
+
+  // Chinese character on drum skin
+  ctx.fillStyle = "#8b2020"; ctx.font = `${r*0.9}px "STKaiti","KaiTi","PingFang SC",serif`;
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText("鼓", cx, cy - r*0.1);
+}
+
+// ==================== SONG SELECT UI ====================
+function buildSongList() {
+  const container = document.getElementById("song-list");
+  container.innerHTML = "";
+  SONGS.forEach(s => {
+    const btn = document.createElement("button");
+    btn.className = "song-btn";
+    btn.innerHTML = `
+      <div class="s-left">
+        <span class="s-title">${s.title}</span>
+        <span class="s-sub">${s.subtitle} · ${s.bpm}BPM · ${Math.round(s.duration)}秒</span>
+      </div>
+      <div class="s-right">
+        <span class="s-diff">${s.difficulty}</span>
+        <span class="s-arrow">▶</span>
+      </div>`;
+    btn.onclick = () => startGame(s.id);
+    container.appendChild(btn);
+  });
+}
+
+// ==================== STARTUP ====================
+resize();
+detectGlasses();
+initRing();
+initCane();
+buildSongList();
+document.getElementById("loading").style.display = "flex";
+// Auto-init audio on first interaction is handled by event listeners
+// Show start screen after a brief moment
+setTimeout(() => {
+  document.getElementById("loading").style.display = "none";
+  document.getElementById("start-screen").style.display = "flex";
+}, 300);
+</script>
+</body>
+</html>
