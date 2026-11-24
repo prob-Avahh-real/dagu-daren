@@ -38,3 +38,25 @@
 - RhythmEngine 节奏引擎类
 - 字符串谱面系统
 - Capacitor 原生包装 (iOS/Android)
+
+## Harness / Loop（助手）
+
+- 遵循根 `/Users/skat/AGENTS.md`：**Harness Engineering** + **Loop Engineering**
+- Guide = 本文件；Sensor = 下方验证命令；同类失误第二次须沉淀规则或测试（棘轮）
+- 开干前写清 **Done**；每切片过验证环；显式停止（成功 / 上限 / 无进展 / 人审）
+- 详解：`docs/HARNESS_ENGINEERING.md`、`docs/LOOP_ENGINEERING.md`
+
+## 验证环 / Done
+
+```bash
+npm install
+npm test
+npm run build
+npx cap sync android
+# 可选 APK（需 JDK 17）：
+# JAVA_HOME=…/openjdk@17 ./android/gradlew -p android assembleDebug
+```
+
+**Done 示例**：`npm test` 通过 + `www/` 就绪 + `android/` 在矩阵内可 `cap sync`。可选穿戴未做可搁置，不纳入强制 Done。
+
+**CI**：已入 `.github/workflows/capacitor-smoke.yml` 矩阵（`dagu-daren`）。
